@@ -9,9 +9,11 @@ local ActionInputMap
 local function DoInput(object, proc)
 	local hooks = InputHooks:Get(object.KeyCode) or InputHooks:Get(object.UserInputType)
 	
-	for _, hook in hooks:KeyIterator() do
-		if (hook.Filter and object.UserInputState ~= hook.Filter) then continue end
-		hook.Callback(object, proc)
+	if (hooks ~= nil) then
+		for _, hook in hooks:KeyIterator() do
+			if (hook.Filter and object.UserInputState ~= hook.Filter) then continue end
+			hook.Callback(object, proc)
+		end
 	end
 end
 
@@ -22,7 +24,7 @@ function InputService:BindAction(inputEnum, actionName, actionCallback, stateFil
 	end
 
 	assert(not InputHooks:Get(inputEnum):Contains(actionName), 
-		string.format("Attempt to double bind action %s on same input %s", actionName, inputEnum))
+		string.format("Attempt to double bind action %s on same input %s", actionName, inputEnum.Name))
 
 	ActionInputMap:Add(actionName, inputEnum)
 	InputHooks:Get(inputEnum):Add(actionName, {
