@@ -137,7 +137,6 @@ function EntityService:EngineInit()
         if (not model:IsDescendantOf(workspace)) then continue end
         AllEntities:Add(model, Prefab(model))
         if (model:FindFirstChild("Model") ~= nil) then model.Model:Destroy() end
-        model.PrimaryPart.Transparency = 1
         model.Configuration:Destroy()
         -- Don't waste memory on storing/replicating the models
     end
