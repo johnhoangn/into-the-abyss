@@ -120,8 +120,6 @@ end
 function MetronomeService:EngineInit()
 	HTTPService = self.RBXServices.HttpService
     RunService = self.RBXServices.RunService
-
-    TaskMutex = self.Classes.Mutex.new()
 end
 
 
