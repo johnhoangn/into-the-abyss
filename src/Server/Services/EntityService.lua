@@ -7,8 +7,8 @@
 
 
 local EntityService = {Priority = 100}
-local AssetService
-local CollectionService
+local AssetService, CollectionService, Network
+local NetProtocol, NetRequestType
 
 
 local AllEntities
@@ -90,6 +90,15 @@ function EntityService:CreateEntity(base, entityType, entityParams)
 
     self.EntityCreated:Fire(base)
 
+	Network:FireAllClients(
+		Network:Pack(
+			NetProtocol.Forget, 
+			NetRequestType.EntityStream, 
+			{base}, 
+			EntityService:PackEntityInfo({base})
+		)
+	)
+
     return newEntity
 end
 
@@ -111,6 +120,9 @@ end
 
 
 function EntityService:EngineInit()
+	Network = self.Services.Network
+	NetRequestType = self.Enums.NetRequestType
+	NetProtocol = self.Enums.NetProtocol
     AssetService = self.Services.AssetService
 	CollectionService = self.RBXServices.CollectionService
 
@@ -133,14 +145,10 @@ end
 
 
 function EntityService:EngineStart()
-	local Network = self.Services.Network
-	local NetRequestType = self.Enums.NetRequestType
-	local NetProtocol = self.Enums.NetProtocol
-
 	self.Services.PlayerService:AddJoinTask(function(user)
 		local bases = {}
 		local entityData
-		print(AllEntities:ToMap())
+
 		for base, _ in AllEntities:KeyIterator() do
 			table.insert(bases, base)
 		end
@@ -157,6 +165,26 @@ function EntityService:EngineStart()
 			)
 		)
 	end, "Initial Entity Streamer")
+
+	self.Services.PlayerService:AddJoinTask(function(user)
+		user.CharacterAdded:Connect(function()
+			if (user.Character.Parent ~= workspace) then
+				print("Waiting for reparent")
+				user.Character.AncestryChanged:Wait()
+				print("Reparented")
+			end
+			warn("ready to create for", user.Character)
+			EntityService:CreateEntity(user.Character, "EntityPC", self.Modules.DefaultEntityNoid)
+			warn("created for", user.Character, self:GetEntity(user.Character))
+		end)
+
+		if (user.Character ~= nil) then
+			if (user.Character.Parent ~= workspace) then
+				user.Character.AncestryChanged:Wait()
+			end
+			EntityService:CreateEntity(user.Character, "EntityPC", self.Modules.DefaultEntityNoid)
+		end
+	end, "AutoUserEntityCreator")
 end
 
 
