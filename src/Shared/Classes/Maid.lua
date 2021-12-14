@@ -97,6 +97,19 @@ function Maid:GiveTask(task)
 	return taskId
 end
 
+-- Task array
+-- @param ... list of tasks
+-- @return array of taskids
+function Maid:GiveTasks(...)
+	local taskIds = {}
+
+	for _, task in ipairs({...}) do
+		table.insert(taskIds, self:GiveTask(task))
+	end
+
+	return taskIds
+end
+
 
 function Maid:GivePromise(promise)
 	if (promise:GetStatus() ~= Promise.Status.Started) then
