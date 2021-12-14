@@ -169,13 +169,9 @@ function EntityService:EngineStart()
 	self.Services.PlayerService:AddJoinTask(function(user)
 		user.CharacterAdded:Connect(function()
 			if (user.Character.Parent ~= workspace) then
-				print("Waiting for reparent")
 				user.Character.AncestryChanged:Wait()
-				print("Reparented")
 			end
-			warn("ready to create for", user.Character)
 			EntityService:CreateEntity(user.Character, "EntityPC", self.Modules.DefaultEntityNoid)
-			warn("created for", user.Character, self:GetEntity(user.Character))
 		end)
 
 		if (user.Character ~= nil) then
