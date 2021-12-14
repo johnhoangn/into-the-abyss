@@ -33,7 +33,7 @@ end
 
 
 -- Attempts to acquire the lock, yields the thread if already locked
-function Mutex:Lock(callback)
+function Mutex:Lock()
     -- All threads that got in must check if this is still locked,
     --  just in case the owner thread is sleeping
     while (self._Locked) do
