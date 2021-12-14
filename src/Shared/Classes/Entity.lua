@@ -100,6 +100,7 @@ function Entity.new(...)
 	self._Opacity = Entity.Enums.Opacity.Opaque;
 
 	self.Root = self.Base.PrimaryPart
+	self.Root.Transparency = 1
 
 	return self
 end
@@ -109,6 +110,13 @@ end
 -- @param bool, true for exempt
 function Entity:MarkPurgeExempt(bool)
 	self.PurgeExempt = bool or nil
+end
+
+
+-- Marks this entity to be permanently rendered
+-- @param bool, true for always visible
+function Entity:MarkMustRender(bool)
+	self.MustRender = bool or nil
 end
 
 

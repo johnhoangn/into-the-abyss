@@ -44,7 +44,7 @@ local function RenderJob(dt)
     -- Check if there are any cached entities that are now in range
     table.clear(RenderBuffer)
     for base, entity in CachedEntities:KeyIterator() do
-        if (DistanceTo(entity) < RENDER_DISTANCE) then
+        if (entity.MustRender or DistanceTo(entity) < RENDER_DISTANCE) then
             table.insert(RenderBuffer, base)
         end
     end
@@ -60,7 +60,7 @@ local function RenderJob(dt)
     if (toProcess > 0) then
         local function ProcessEntity(base, entity)
             -- Async due to potential asset downloads
-            if (DistanceTo(entity) < RENDER_DISTANCE) then
+            if (entity.MustRender or DistanceTo(entity) < RENDER_DISTANCE) then
                 entity:Draw(dt)
             else
                 table.insert(RenderBuffer, base)
@@ -97,7 +97,7 @@ end
 -- Reconstructs entities from provided information
 -- @param dt <float>
 -- @param entities <table>, {<Model> = {Type = <string>; InitialParams = <table>}}
-function EntityService:ReceiveEntities(dt, bases, entityInfo)
+function EntityService:ReceiveEntities(_dt, bases, entityInfo)
     CacheMutex:Lock()
     for i, base in pairs(bases) do
         if (EntityService:GetEntity(base) ~= nil) then
@@ -111,6 +111,10 @@ function EntityService:ReceiveEntities(dt, bases, entityInfo)
             info.InitialParams,
             true
         )
+
+		if (base == self.LocalPlayer.Character) then
+			entity:MarkMustRender(true)
+		end
 
         CachedEntities:Add(base, entity)
     end
