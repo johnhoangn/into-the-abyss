@@ -1,4 +1,4 @@
 return {
-	_SkinID = "000";
+	_SkinID = "001";
 	_BaseID = "010";
 }
