@@ -24,6 +24,8 @@ function Entity.new(base, initialParams)
 	assert(base.PrimaryPart ~= nil, "Missing primary part " .. base:GetFullName())
 
 	local self = DeepObject.new({
+		_LastPosition = Vector3.new();
+		
 		InitialParams = initialParams;
 		Base = base;
 		UID = initialParams.UID or HttpService:GenerateGUID();
@@ -60,7 +62,14 @@ end
 -- Instead of the above, and while each subclass might compute this differently,
 --	we use this:
 function Entity:GetPosition()
-	return self.Base.PrimaryPart.Position
+	local position = nil
+
+	if (self.Base.PrimaryPart ~= nil) then
+		position = self.Base.PrimaryPart.Position
+		self._LastPosition = position
+	end
+
+	return position or self._LastPositions
 end
 
 
@@ -85,11 +94,12 @@ function Entity.new(...)
 	local self = new(...)
 	local asset = AssetService:GetAsset(self.InitialParams._BaseID)
 
-	self._Root = self.Base.PrimaryPart
 	self._Asset = asset
 
 	self._LastOpacity = Entity.Enums.Opacity.Opaque;
 	self._Opacity = Entity.Enums.Opacity.Opaque;
+
+	self.Root = self.Base.PrimaryPart
 
 	return self
 end
