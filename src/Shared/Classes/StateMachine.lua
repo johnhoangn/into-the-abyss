@@ -68,6 +68,11 @@ function StateMachine:GetStateNameFromEnum(stateEnum)
 end
 
 
+function StateMachine:GetState()
+	return self:GetStateNameFromEnum(self.CurrentState)
+end
+
+
 function StateMachine:CanTransitionTo(to)
 	return table.find(self.Transitions:Get(self.CurrentState), to) ~= nil
 		or table.find(self.Transitions:Get(self.States.Any), to) ~= nil

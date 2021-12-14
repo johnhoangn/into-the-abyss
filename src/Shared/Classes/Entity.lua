@@ -69,7 +69,7 @@ function Entity:GetPosition()
 		self._LastPosition = position
 	end
 
-	return position or self._LastPositions
+	return position or self._LastPosition
 end
 
 
