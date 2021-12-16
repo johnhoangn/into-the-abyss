@@ -8,5 +8,8 @@ return {
 	EntitySkin = 0;
 	EntityPC = 1;
 	EntityNPC = 2;
+	EntityStatic = 3;
 
+	AnimationPack = 4;
+	CoreAnimator = 5;
 }

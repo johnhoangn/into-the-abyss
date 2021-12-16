@@ -93,7 +93,7 @@ function EntityNoid.new(...)
 	local self = new(...)
 	local asset = AssetService:GetAsset(self.InitialParams._SkinID)
 
-	self._SkinAsset = asset
+	self.SkinAsset = asset
 
 	self._LastOpacity = Entity.Enums.Opacity.Opaque;
 	self._Opacity = Entity.Enums.Opacity.Opaque;
@@ -105,9 +105,9 @@ end
 
 
 -- Renders this EntityNoid
-function EntityNoid:Draw()
+function EntityNoid:Draw(dt)
     if (self.Skin == nil) then
-        local skin = self._SkinAsset.Model:Clone()
+        local skin = self.SkinAsset.Model:Clone()
         local parts = {}
 
         for _, part in ipairs(skin:GetDescendants()) do
@@ -120,9 +120,35 @@ function EntityNoid:Draw()
 		skin.PrimaryPart.Root.Part0 = self.Base.PrimaryPart
         skin.Parent = self.Base
 
+		-- Try to resume the animator if I have one
+		if (self._Animator ~= nil) then
+			self._Animator:Resume()
+		else
+			-- Initialize my client sided animator if applicable
+			if (self.SkinAsset.CoreAnimator ~= nil) then
+				self._Animator = self.Services.AnimationService:GetAnimator(self)
+				self._Animator:Resume()
+			end
+		end
+
         self.Skin = skin
         self._Parts = parts
+	elseif (self._Animator ~= nil) then
+		self._Animator:Step(dt)
     end
+end
+
+
+-- Does the skin attached to me have a client-sided animator?
+function EntityNoid:HasAnimator()
+	return self._Animator ~= nil
+end
+
+
+-- Only if we have one
+-- @param dt seconds since last step
+function EntityNoid:StepAnimator(dt)
+	self._Animator:Step(dt)
 end
 
 
@@ -134,6 +160,10 @@ end
 
 -- Removes the skin
 function EntityNoid:Hide()
+	if (self._Animator ~= nil) then
+		self._Animator:Pause()
+	end
+
     self.Skin:Destroy()
     self.Skin = nil
     self._Parts = nil
@@ -144,6 +174,11 @@ end
 local superDestroy = Entity.Destroy
 function EntityNoid:Destroy()
     self:Hide()
+
+	if (self._Animator ~= nil) then
+		self._Animator:Destroy()
+	end
+
     superDestroy()
 end
 

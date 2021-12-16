@@ -23,4 +23,7 @@ return {
 
 	EntityStream = 1;
     EntityRequest = 2;
+
+	AnimationPackQuery = 3;
+	CoreAnimatorQuery = 4;
 }
