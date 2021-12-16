@@ -8,7 +8,7 @@
 
 
 local SQRT = math.sqrt
-local RENDER_DISTANCE = 10
+local RENDER_DISTANCE = 100
 
 
 local EntityService = {Priority = 100}
@@ -155,6 +155,7 @@ function EntityService:CreateEntity(base, entityType, entityParams, noLock)
     end
 
     AllEntities:Add(base, newEntity)
+	CachedEntities:Add(base, newEntity)
 
     if (not noLock) then
         CacheMutex:Unlock()
