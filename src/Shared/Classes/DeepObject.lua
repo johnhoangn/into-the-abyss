@@ -15,6 +15,7 @@ end
 -- @param members <table> == nil
 -- @returns <DeepObject>
 function DeepObject.new(members)
+	members.OnDestroyed = Engine.Classes.Signal.new()
 	return setmetatable(members or {}, DeepObject)
 end
 
@@ -55,6 +56,7 @@ end
 
 function DeepObject:Destroy()
     self:GetMaid():DoCleaning()
+	self.OnDestroyed:Fire()
     setmetatable(self, nil)
 end
 
