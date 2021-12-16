@@ -3,17 +3,20 @@ local CharacterController = {Priority = 50}
 
 local MetronomeService
 
-local CurrentMove, InputManager
+local CurrentMove, InputManager, EntityService
 local LocalPlayer, CurrentEntity
-local MoveJobID
+local BindingMaid, MoveJobID
 
 
-local function UpdateMove(dt)
+local function UpdateMove(_dt)
+	if (CurrentEntity == nil) then return end
 	LocalPlayer:Move(Vector3.new(
 		CurrentMove.Right,
 		0,
 		CurrentMove.Forward
 	), true)
+
+	CurrentEntity.Base.Humanoid.Jump = CurrentMove.Jump
 end
 
 
@@ -24,26 +27,31 @@ local function ModDir(dir, coeff)
 end
 
 
-local function TryJump(object, _proc)
-	local pivot = CharacterController.LocalPlayer.Character.PrimaryPart
-	pivot:ApplyImpulse(Vector3.new(
-		0,
-		pivot.AssemblyMass * 50,
-		0
-	))
+local function ModJump(object, _proc)
+	CurrentMove.Jump = object.UserInputState == Enum.UserInputState.Begin
 end
 
 
-function CharacterController:TrySetState(entityState, ...)
-	
+function CharacterController:CanJump()
+	return CurrentEntity ~= nil 
+		and CurrentEntity:CanJump()
 end
 
 
 function CharacterController:Enable(bool)
 	if (bool) then
+		BindingMaid:GiveTasks(
+			InputManager:BindAction(Enum.KeyCode.W, "ModForward", ModDir("Forward", -1), nil),
+			InputManager:BindAction(Enum.KeyCode.A, "ModRight", ModDir("Right", -1), nil),
+			InputManager:BindAction(Enum.KeyCode.S, "ModForwardInverse", ModDir("Forward", 1), nil),
+			InputManager:BindAction(Enum.KeyCode.D, "ModRightInverse", ModDir("Right", 1), nil),
+
+			InputManager:BindAction(Enum.KeyCode.Space, "Jump", ModJump, nil)
+		)
 		MoveJobID = MetronomeService:BindToFrequency(60, UpdateMove)
 	else
 		if (MoveJobID ~= nil) then
+			BindingMaid:DoCleaning()
 			MetronomeService:Unbind(MoveJobID)
 			MoveJobID = nil
 		end
@@ -54,24 +62,40 @@ end
 function CharacterController:EngineInit()
 	MetronomeService = self.Services.MetronomeService
 	InputManager = self.Services.InputManager
+	EntityService = self.Services.EntityService
+
+	BindingMaid = self.Classes.Maid.new()
+
+	self.FirstEntityReady = self.Classes.Signal.new()
 
 	CurrentMove = {
 		Forward = 0;
 		Right = 0;
+		Jump = false;
 	}
 
-	InputManager:BindAction(Enum.KeyCode.W, "ModForward", ModDir("Forward", -1), nil)
-	InputManager:BindAction(Enum.KeyCode.A, "ModRight", ModDir("Right", -1), nil)
-	InputManager:BindAction(Enum.KeyCode.S, "ModForwardInverse", ModDir("Forward", 1), nil)
-	InputManager:BindAction(Enum.KeyCode.D, "ModRightInverse", ModDir("Right", 1), nil)
-
-	InputManager:BindAction(Enum.KeyCode.Space, "Jump", TryJump, Enum.UserInputState.Begin)
+	EntityService.EntityCreated:Connect(function(base)
+		if (base == self.LocalPlayer.Character) then
+			CurrentEntity = EntityService:GetEntity(base)
+			self.FirstEntityReady:Fire()
+		end
+	end)
+	EntityService.EntityDestroyed:Connect(function(base)
+		if (base == CurrentEntity.Base) then
+			CurrentEntity = nil
+		end
+	end)
 end
 
 
 function CharacterController:EngineStart()
 	LocalPlayer = self.LocalPlayer
 	require(LocalPlayer.PlayerScripts.PlayerModule):GetControls():Enable(false)
+
+	if (CurrentEntity == nil) then
+		self.FirstEntityReady:Wait()
+	end
+	
 	CharacterController:Enable(true)
 end
 
