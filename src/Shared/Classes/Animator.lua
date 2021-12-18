@@ -25,6 +25,7 @@ function Animator.new(entity)
 	local self = DeepObject.new({
 		_Controller = entity.Base:FindFirstChild("Humanoid");
 
+		_CoreLock = nil;
 		_CachedTracks = nil;
 		_CurrentCoreTrack = nil;
 		_CurrentActionTrack = nil;
@@ -41,6 +42,7 @@ function Animator.new(entity)
 	})
 
 	setmetatable(self, Animator)
+	self._CoreLock = self.Classes.Mutex.new()
 	self._CachedTracks = self.Classes.IndexedMap.new()
 
 	local coreAnimatorModule = self.Services.AnimationService
@@ -59,6 +61,7 @@ function Animator:Resume()
 	-- Resume core
 	local coreTrackName = self:PickCoreTrack()
 	self:PlayCore(coreTrackName)
+	self._CurrentCoreTrack.TimePosition = self._CoreTrackTime
 
 	-- Resume action
 	if (self._CurrentActionTrackName) then
@@ -105,9 +108,15 @@ end
 -- Stops the previous core layer track
 -- @param trackName <string>
 function Animator:PlayCore(trackName, fade, weight, rate)
-	if (self._CurrentCoreTrack ~= nil and self._CurrentCoreTrackName == trackName) then
+	if (not self._CoreLock:TryLock()) then return end
+
+	if (self._CurrentCoreTrack ~= nil) then
 		-- CurrentCoreTrack is only non-nil if there is a core track playing
-		return
+		if (self._CurrentCoreTrackName == trackName) then
+			self._CoreLock:Unlock()
+			return
+		end
+		self._CurrentCoreTrack:Stop(DEFAULT_FADE_TIME)
 	end
 
 	local coreTrack = self._CachedTracks:Get(trackName)
@@ -119,15 +128,17 @@ function Animator:PlayCore(trackName, fade, weight, rate)
 		-- If we downloaded the animation, during which we changed to a disabled state,
 		--	abort the load and do not resume; do not modify ANYTHING
 		if (self.State == self.States.Disabled) then
+			self._CoreLock:Unlock()
 			return
 		end
 
 		coreTrack = self._Controller:LoadAnimation(animation)
-		coreTrack.TimePosition = self._CoreTrackTime
+		self._CachedTracks:Add(trackName, coreTrack)
 	end
 
 	self._CurrentCoreTrack = coreTrack
 	coreTrack:Play(fade or DEFAULT_FADE_TIME, weight or 1, rate or 1)
+	self._CoreLock:Unlock()
 end
 
 
