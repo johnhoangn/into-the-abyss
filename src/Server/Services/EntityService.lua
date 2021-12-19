@@ -88,6 +88,7 @@ function EntityService:CreateEntity(base, entityType, entityParams)
     AllEntities:Add(base, newEntity)
     CacheMutex:Unlock()
 
+	self:AttachAttributes(base)
     self.EntityCreated:Fire(base)
 
 	Network:FireAllClients(
@@ -116,6 +117,17 @@ function EntityService:DestroyEntity(base)
         -- entity destroyed replication automatically handled when "base"
         --  is destroyed and that state is communicated via Roblox
     end
+end
+
+
+-- Applies attributes for auto-replication convenience
+-- (Much better than the old "EntityChanged" communication via Network)
+-- @param base <Model>
+function EntityService:AttachAttributes(base)
+	local entity = self:GetEntity(base)
+
+	base:SetAttribute("Health", 50)
+	base:SetAttribute("Energy", 20)
 end
 
 
@@ -180,6 +192,13 @@ function EntityService:EngineStart()
 			EntityService:CreateEntity(user.Character, "EntityPC", self.Modules.DefaultEntityNoid)
 		end
 	end, "AutoUserEntityCreator")
+
+	-- State updater
+	self.Services.MetronomeService:BindToFrequency(30, function()
+		for _, entity in AllEntities:KeyIterator() do
+			entity:UpdateState()
+		end
+	end)
 end
 
 

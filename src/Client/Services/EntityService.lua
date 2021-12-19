@@ -62,6 +62,7 @@ local function RenderJob(dt)
             -- Async due to potential asset downloads
             if (entity.MustRender or DistanceTo(entity) < RENDER_DISTANCE) then
                 entity:Draw(dt)
+				entity:UpdateState()
             else
                 table.insert(RenderBuffer, base)
             end

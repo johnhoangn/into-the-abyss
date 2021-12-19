@@ -22,13 +22,17 @@ function EntityNoid.new(base, initialParams)
 	local StateMachine = self.Classes.StateMachine.new("Idle")
 	local States = StateMachine.States
 
+	--StateMachine:AddState("Dead")
+	--StateMachine:AddState("Downed")
 	StateMachine:AddState("Jogging")
 	StateMachine:AddState("Jumping")
 	StateMachine:AddState("Attacking")
 	StateMachine:AddState("Staggering")
-	StateMachine:AddState("Stun")
+	StateMachine:AddState("Stunned")
 
-	StateMachine:AddTransition(States.Any, States.Staggering)
+	--StateMachine:AddTransition(States.Any, States.Dead)
+	--StateMachine:AddTransition(States.Any, States.Downed)
+	StateMachine:AddTransition(States.Any, States.Stunned)
 
 	StateMachine:AddTransition(States.Idle, States.Jogging)
 	StateMachine:AddTransition(States.Idle, States.Attacking)
@@ -44,24 +48,19 @@ function EntityNoid.new(base, initialParams)
 	StateMachine:AddTransition(States.Attacking, States.Idle)
 	StateMachine:AddTransition(States.Attacking, States.Jumping)
 
-	StateMachine:AddTransition(States.Stun, States.Idle)
-	StateMachine:AddTransition(States.Staggering, States.Idle)
+	StateMachine:AddTransition(States.Stunned, States.Idle)
 
+	setmetatable(self, EntityNoid)
+
+	self._JumpedAt = 0
 	self.StateMachine = StateMachine
+	self:StartAttributeTracker()
 
-	self:AddSignal("Landed")
-	self:AddSignal("Jumped")
-	
-	base.Humanoid.StateChanged:Connect(function(_from, to)
-		if (to == Enum.HumanoidStateType.Landed) then
-			if (StateMachine:CanTransitionTo(States.Idle)) then
-				StateMachine:TransitionTo(States.Idle)
-			end
-			self.Landed:Fire()
-		end
-	end)
+	-- StateMachine.StateChanged:Connect(function(from, to)
+	-- 	print(StateMachine:GetStateNameFromEnum(from), StateMachine:GetStateNameFromEnum(to))
+	-- end)
 
-	return setmetatable(self, EntityNoid)
+	return self
 end
 
 
@@ -76,8 +75,43 @@ end
 function EntityNoid:Jump()
 	local mass = self.Root.AssemblyMass
 
+	self._JumpedAt = tick()
 	self.StateMachine:TransitionTo(self.StateMachine.States.Jumping)
 	self.Root:ApplyImpulse(Vector3.new(0, 50, 0) * mass)
+end
+
+
+-- Go through all transitions' conditions to check which state we 
+--	should be in
+function EntityNoid:UpdateState()
+	local machineState = self.StateMachine.CurrentState
+	local states = self.StateMachine.States
+	local humanoidState = self.Base.Humanoid:GetState()
+	local floorMaterial = self.Base.Humanoid.FloorMaterial
+	local now = tick()
+
+	-- Try stunned (TODO)
+	if (false) then
+		self.StateMachine:TransitionTo(states.Stunned)
+
+	-- Try landing
+	elseif (machineState == states.Jumping 
+		and self.StateMachine:CanTransitionTo(states.Idle)
+		and now - self._JumpedAt > 0.1
+		and (humanoidState == Enum.HumanoidStateType.Running
+			or humanoidState == Enum.HumanoidStateType.RunningNoPhysics)) then
+			
+		self.StateMachine:TransitionTo(states.Idle)
+	end
+end
+
+
+-- Binds attribute changes to Entity members
+function EntityNoid:StartAttributeTracker()
+	self:GetMaid():GiveTask(self.Base.AttributeChanged:Connect(function(attr)
+		self[attr] = self.Base:GetAttribute(attr)
+		self:UpdateState()
+	end))
 end
 
 

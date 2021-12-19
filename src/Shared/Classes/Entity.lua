@@ -82,6 +82,11 @@ function Entity:Destroy()
 end
 
 
+-- For simplification
+function Entity:UpdateState()
+end
+
+
 -- CLIENT METHODS
 if (game:GetService("Players").LocalPlayer == nil) then return Entity end
 
