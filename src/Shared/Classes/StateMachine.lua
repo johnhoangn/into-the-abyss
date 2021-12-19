@@ -9,51 +9,52 @@ local TableUtil
 
 function StateMachine.new(initialStateName)
 	TableUtil = TableUtil or Engine.Modules.TableUtil
-	local self = DeepObject.new({
+	local self = setmetatable(DeepObject.new({
 		States = {Any = -1};
 		NumStates = 0;
 		CurrentState = 0;
 		
 		Transitions = nil;
-	})
+	}), StateMachine)
 
 	self:AddSignal("StateChanged")
 	self.Transitions = self.Classes.IndexedMap.new()
-	self.Transitions:Add(self.States.Any, {})
-
-	setmetatable(self, StateMachine)
 	self:AddState(initialStateName)
 
 	return self
 end
 
 
-function StateMachine.fromStateMapping(mappingTable)
-	local machine = StateMachine.new(mappingTable.InitialState)
+-- TODO: THIS DOESN'T WORK WITH NEW "UPDATESTATE" TYPE MACHINE
+-- function StateMachine.fromStateMapping(mappingTable)
+-- 	local machine = StateMachine.new(mappingTable.InitialState)
 
-	for _, state in ipairs(mappingTable.States) do
-		machine:AddState(state)
-	end
+-- 	for _, state in ipairs(mappingTable.States) do
+-- 		machine:AddState(state)
+-- 	end
 
-	for _, transition in ipairs(mappingTable.Transitions) do
-		machine:AddTransition(machine.States[transition[1]], machine.States[transition[2]])
-	end
+-- 	for _, transition in ipairs(mappingTable.Transitions) do
+-- 		machine:AddTransition(machine.States[transition[1]], machine.States[transition[2]])
+-- 	end
 
-	return machine
-end
+-- 	return machine
+-- end
 
 
 function StateMachine:AddState(stateName)
-	self.Transitions:Add(self.NumStates, {})
 	self.States[stateName] = self.NumStates
 	self.NumStates += 1
 end
 
 
-function StateMachine:AddTransition(from, to)
-	local transitionsFrom = self.Transitions:Get(from)
-	table.insert(transitionsFrom, to)
-	table.sort(transitionsFrom)
+function StateMachine:AddTransition(name, from, to, qualifier)
+	assert(self.Transitions:Get(name) == nil, "Redundant transition definition: " .. name)
+	print("Add", name, from, to, qualifier)
+	self.Transitions:Add(name, {
+		FromState = from;
+		ToState = to;
+		Qualifier = qualifier;
+	})
 end
 
 
@@ -73,25 +74,50 @@ function StateMachine:GetState()
 end
 
 
-function StateMachine:CanTransitionTo(to)
-	return table.find(self.Transitions:Get(self.CurrentState), to) ~= nil
-		or table.find(self.Transitions:Get(self.States.Any), to) ~= nil
+-- @param transitionName <string>
+-- @returns true if we may transition (nil qualifier means manual transition ONLY)
+function StateMachine:TransitionQualifies(transitionName)
+	local transition = self.Transitions:Get(transitionName)
+	assert(transition, "Invalid transition: " .. transitionName)
+	return transition.Qualifier == nil or transition.Qualifier()
 end
 
 
-function StateMachine:TransitionTo(to, ...)
+function StateMachine:Transition(transitionName, ...)
 	local currState = self.CurrentState
+	local transition = self.Transitions:Get(transitionName)
 
-	assert(self:CanTransitionTo(to),
+	assert(currState ~= transition.ToState, "Circular transition: " .. transitionName)
+
+	assert(self:TransitionQualifies(transitionName),
 		string.format(
 			"Invalid transition from %s to %s!", 
 			self:GetStateNameFromEnum(currState), 
-			self:GetStateNameFromEnum(to)
+			self:GetStateNameFromEnum(transition.ToState)
 		)
 	)
 
-	self.CurrentState = to
-	self.StateChanged:Fire(currState, to, ...)
+	self.CurrentState = transition.ToState
+	self.StateChanged:Fire(currState, transition.ToState, transitionName, ...)
+end
+
+
+function StateMachine:UpdateState()
+	local currState = self.CurrentState
+
+	for transitionName, transition in self.Transitions:KeyIterator() do
+		-- If we do not have a qualifier, this is not an automatically transitioned state
+		-- If we are not currently in the fromstate, disqualify immediately
+		-- If we are already in the tostate, we don't need to check this transition
+		--if (transitionName == 5) then print(transition.Qualifier == nil, currState ~= transition.FromState, currState == transition.ToState) end
+		if (transition.Qualifier == nil 
+			or currState ~= transition.FromState 
+			or currState == transition.ToState) then continue end
+
+		if (self:TransitionQualifies(transitionName)) then
+			self:Transition(transitionName)
+		end
+	end
 end
 
 

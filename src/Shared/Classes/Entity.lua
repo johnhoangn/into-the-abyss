@@ -23,13 +23,13 @@ function Entity.new(base, initialParams)
 	assert(base:IsA("Model"), "Base must be a model " .. base:GetFullName())
 	assert(base.PrimaryPart ~= nil, "Missing primary part " .. base:GetFullName())
 
-	local self = DeepObject.new({
+	local self = setmetatable(DeepObject.new({
 		_LastPosition = Vector3.new();
 		
 		InitialParams = initialParams;
 		Base = base;
 		UID = initialParams.UID or HttpService:GenerateGUID();
-	})
+	}), Entity)
 
 	if (initialParams ~= nil) then
 		for k, v in pairs(initialParams) do
@@ -37,7 +37,15 @@ function Entity.new(base, initialParams)
 		end
 	end
 
-	return setmetatable(self, Entity)
+	self.StateMachine = self.Classes.StateMachine.new("Idle")
+	self.StateChanged = self.StateMachine.StateChanged
+	self.Attributes = {}
+
+	self:StartAttributeTracker()
+	self:AddSignal("HealthChanged")
+	self:AddSignal("EnergyChanged")
+
+	return self
 end
 
 
@@ -84,6 +92,44 @@ end
 
 -- For simplification
 function Entity:UpdateState()
+end
+
+
+-- Health/Energy modifiers
+-- @param resource <string>
+-- @param delta <number>
+function Entity:ChangeResourceVal(resource, delta)
+	local current = self.Base:GetAttribute(resource)
+	local max = self.Base:GetAttribute("Max" .. resource)
+	local new = math.clamp(current + delta, 0, max)
+
+	if (new == current) then
+		return
+	end
+
+	self.Base:SetAttribute(resource, new)
+	self[resource .. "Changed"]:Fire(current, new)
+end
+function Entity:Hurt(amt)
+	self:ChangeResourceVal("Health", -amt)
+end
+function Entity:Heal(amt)
+	self:ChangeResourceVal("Health", amt)
+end
+function Entity:Drain(amt)
+	self:ChangeResourceVal("Energy", -amt)
+end
+function Entity:Recover(amt)
+	self:ChangeResourceVal("Energy", amt)
+end
+
+
+-- Binds attribute changes to Entity members
+function Entity:StartAttributeTracker()
+	self:GetMaid():GiveTask(self.Base.AttributeChanged:Connect(function(attr)
+		self.Attributes[attr] = self.Base:GetAttribute(attr)
+		self:UpdateState()
+	end))
 end
 
 

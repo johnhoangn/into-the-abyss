@@ -22,7 +22,7 @@ setmetatable(Animator, DeepObject)
 -- TODO: CONVERT "ACTIONTRACK" TO "ACTIONTRACK~S~" AS MULTIPLE ACTIONS CAN PLAY/END AT ONCE
 -- @param entity <Entity> to play animations for
 function Animator.new(entity)
-	local self = DeepObject.new({
+	local self = setmetatable(DeepObject.new({
 		_Controller = entity.Base:FindFirstChild("Humanoid");
 
 		_CoreLock = nil;
@@ -39,9 +39,8 @@ function Animator.new(entity)
 		_Entity = entity;
 
 		State = Animator.States.Disabled;
-	})
+	}), Animator)
 
-	setmetatable(self, Animator)
 	self._CoreLock = self.Classes.Mutex.new()
 	self._CachedTracks = self.Classes.IndexedMap.new()
 
@@ -49,6 +48,16 @@ function Animator.new(entity)
 		:GetCoreAnimatorModule(entity.SkinAsset.CoreAnimator)
 		
 	self:LoadCoreModule(require(coreAnimatorModule))
+
+	entity.StateMachine.StateChanged:Connect(function(from, to)
+		if (to == entity.StateMachine.States.Jumping) then
+			--print("Jump action!")
+			--self:PlayAction("DefaultBloxianJump001")
+		elseif (from == entity.StateMachine.States.Jumping) then
+			--print("Jump stop action!")
+			--self:StopAction("DefaultBloxianJump001")
+		end
+	end)
 
 	return self
 end
@@ -162,6 +171,10 @@ function Animator:PlayAction(trackName, fade, weight, rate)
 
 	self._CurrentActionTrack = actionTrack
 	actionTrack:Play(fade or DEFAULT_FADE_TIME, weight or 1, rate or 1)
+end
+
+
+function Animator:StopAction(trackName, fade)
 end
 
 
