@@ -127,7 +127,9 @@ function EntityService:AttachAttributes(base)
 	local entity = self:GetEntity(base)
 
 	base:SetAttribute("Health", 50)
+	base:SetAttribute("MaxHealth", 50)
 	base:SetAttribute("Energy", 20)
+	base:SetAttribute("MaxEnergy", 20)
 end
 
 
