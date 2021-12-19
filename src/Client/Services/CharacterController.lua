@@ -16,7 +16,9 @@ local function UpdateMove(_dt)
 		CurrentMove.Forward
 	), true)
 
-	CurrentEntity.Base.Humanoid.Jump = CurrentMove.Jump
+	if (CurrentMove.Jump and CurrentEntity:CanJump()) then
+		CurrentEntity:Jump()
+	end
 end
 
 
