@@ -49,7 +49,7 @@ end
 
 function StateMachine:AddTransition(name, from, to, qualifier)
 	assert(self.Transitions:Get(name) == nil, "Redundant transition definition: " .. name)
-	print("Add", name, from, to, qualifier)
+
 	self.Transitions:Add(name, {
 		FromState = from;
 		ToState = to;
