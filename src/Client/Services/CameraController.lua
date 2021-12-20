@@ -13,13 +13,49 @@ local CLAMP = math.clamp
 local MIN_PITCH = -89
 local MAX_PITCH = 89
 local MIN_ZOOM = 1
-local MAX_ZOOM = 10
+local MAX_ZOOM = 20
 
 
-local InputManager, EntityService
+local InputManager, EntityService, CollectionService
 local TargetLook, Springs, States
 local CurrentEntity, Camera
 local BindingMaid, CamJobID
+local RayParams
+
+
+-- Looks for obstacles and returns the occluded cframe
+-- @param subjectPos <Vector3>
+-- @param desiredCFrame <CFrame>
+local function Occlude(subjectPos, desiredCFrame)
+	local towardsDesired = (desiredCFrame.Position - subjectPos)
+	local maxLen = towardsDesired.Magnitude
+	local ignore = CollectionService:GetTagged("Entity")
+	local origin = subjectPos
+	local rayResults
+
+	towardsDesired = towardsDesired.Unit
+	RayParams.FilterDescendantsInstances = ignore
+	rayResults = workspace:Raycast(origin, towardsDesired * maxLen, RayParams)
+
+	while rayResults and (rayResults.Instance.Transparency > 0.3 or not rayResults.Instance.CanCollide) and maxLen > 0 do
+		maxLen -= (rayResults.Position - origin).Magnitude
+		table.insert(ignore, rayResults.Instance)
+		RayParams.FilterDescendantsInstances = ignore
+		origin = rayResults.Position
+		rayResults = workspace:Raycast(origin, towardsDesired * maxLen, RayParams)
+	end
+
+	if not rayResults then
+		return desiredCFrame
+	else
+		local weirdSignThing = ((rayResults.Position - subjectPos).Magnitude < (desiredCFrame.Position - subjectPos).Magnitude) and -1 or 1
+		local intersectVector = (rayResults.Position - desiredCFrame.Position)
+		intersectVector = intersectVector - (intersectVector.Unit * 2) * weirdSignThing
+		local occlude = desiredCFrame:VectorToObjectSpace(intersectVector)
+
+		return desiredCFrame * CFrame.new(occlude.X, occlude.Y, occlude.Z)
+	end
+end
 
 
 -- Called every heartbeat
@@ -31,7 +67,8 @@ local function UpdateCamera(dt)
 		spring:SetGoal(TargetLook[lookField])
 	end
 
-	Camera.CFrame = CFrame.new(CurrentEntity:GetPosition())
+	local subjectPosition = CurrentEntity:GetPosition()
+	local desiredCFrame = CFrame.new(subjectPosition)
 		-- Shake yaw and look yaw
 		* CFrame.Angles(0, RAD(Springs.OriginYaw.x + Springs.Yaw.x), 0)
 
@@ -44,6 +81,8 @@ local function UpdateCamera(dt)
 			Springs.OriginY.x + Springs.OffsetY.x, 
 			Springs.Zoom.x
 		)
+
+	Camera.CFrame = Occlude(subjectPosition, desiredCFrame)
 end
 
 
@@ -130,8 +169,11 @@ function CameraController:EngineInit()
 	MetronomeService = self.Services.MetronomeService
 	InputManager = self.Services.InputManager
 	EntityService = self.Services.EntityService
+	CollectionService = self.RBXServices.CollectionService
 
 	Camera = workspace.CurrentCamera
+	RayParams = RaycastParams.new()
+	RayParams.FilterType = Enum.RaycastFilterType.Blacklist
 
 	BindingMaid = self.Classes.Maid.new()
 
