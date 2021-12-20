@@ -46,3 +46,5 @@ Todo.server.lua
 **/MainServer.server.lua
 **/MainClient.client.lua
 **/Plugins
+roblox.toml
+selene.toml
