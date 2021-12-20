@@ -1,42 +1,125 @@
+-- Spring based camera controller
+-- Dynamese(Enduo)
+-- 12.19.2021
+
+
+
 local CameraController = {Priority = 50}
 local MetronomeService
 
+
+local RAD = math.rad
+local CLAMP = math.clamp
+local MIN_PITCH = -89
+local MAX_PITCH = 89
+local MIN_ZOOM = 1
+local MAX_ZOOM = 10
+
+
 local InputManager, EntityService
-local CurrentLook, LocalPlayer, CurrentEntity
+local TargetLook, Springs, States
+local CurrentEntity, Camera
 local BindingMaid, CamJobID
 
 
-local function UpdateCamera(_dt)
+-- Called every heartbeat
+local function UpdateCamera(dt)
 	if (CurrentEntity == nil) then return end
 
-	print(CurrentLook.Yaw, CurrentLook.Pitch, CurrentLook.Zoom)
+	for lookField, spring in pairs(Springs) do
+		spring:Step(dt)
+		spring:SetGoal(TargetLook[lookField])
+	end
+
+	Camera.CFrame = CFrame.new(CurrentEntity:GetPosition())
+		-- Shake yaw and look yaw
+		* CFrame.Angles(0, RAD(Springs.OriginYaw.x + Springs.Yaw.x), 0)
+
+		-- Shake pitch and look pitch
+		* CFrame.Angles(RAD(Springs.OriginPitch.x + Springs.Pitch.x), 0, 0)
+
+		-- Shake offset and look offset
+		* CFrame.new(
+			States.Shoulder * (Springs.OriginX.x + Springs.OffsetX.x), 
+			Springs.OriginY.x + Springs.OffsetY.x, 
+			Springs.Zoom.x
+		)
 end
 
 
+-- Handles both pitch and yaw
+-- Currently only supports MouseKB
 local function ModPitchYaw(object, _proc)
-	CurrentLook.Yaw += object.Delta.X
-	CurrentLook.Pitch += object.Delta.Y
+	TargetLook.Yaw -= object.Delta.X * 0.4
+	TargetLook.Pitch = CLAMP(TargetLook.Pitch - object.Delta.Y * 0.4, MIN_PITCH, MAX_PITCH)
 end
 
 
+-- Handles zooming
+-- Currently only supports MouseKB
 local function ModZoom(object, proc)
 	if (proc) then return end
-
-	CurrentLook.Zoom += object.Position.Z
+	TargetLook.Zoom = CLAMP(TargetLook.Zoom - object.Position.Z * 1.5, MIN_ZOOM, MAX_ZOOM)
 end
 
 
+-- Toggles mouse lock
+-- TODO: Consider moving this to InputManager?
+local function ToggleMouse(object, proc)
+	if (object.UserInputState ~= Enum.UserInputState.Begin or proc) then
+		return
+	end
+
+	States.MouseLocked = not States.MouseLocked
+	CameraController.RBXServices.UserInputService.MouseBehavior = States.MouseLocked
+		and Enum.MouseBehavior.LockCenter
+		or Enum.MouseBehavior.Default
+end
+
+
+-- Manual panning of the camera when not mouse locked
+local function PanCamera(object, proc)
+	if (States.MouseLocked) then
+		return
+	end
+
+	CameraController.RBXServices.UserInputService.MouseBehavior = 
+		(not proc and object.UserInputState == Enum.UserInputState.Begin)
+			and Enum.MouseBehavior.LockCurrentPosition
+			or Enum.MouseBehavior.Default
+end
+
+
+-- Flips which side the camera is on
+local function SwapShoulder(_object, _proc)
+	States.Shoulder *= -1
+end
+
+
+-- Throws the origin springs offcenter... somehow...
+-- @param bias <number> direction/angle bias?
+-- @param magnitude <number> how big of a shake
+function CameraController:Shake(bias, magnitude)
+end
+
+
+-- Enable/Disable
 function CameraController:Enable(bool)
 	if (bool) then
 		BindingMaid:GiveTasks(
 			InputManager:BindAction(Enum.UserInputType.MouseMovement, "PitchYawCamera", ModPitchYaw, nil),
-			InputManager:BindAction(Enum.UserInputType.MouseWheel, "ZoomCamera", ModZoom, nil)			
+			InputManager:BindAction(Enum.UserInputType.MouseWheel, "ZoomCamera", ModZoom, nil),
+			InputManager:BindAction(Enum.UserInputType.MouseButton2, "PanCamera", PanCamera, nil),
+			
+			InputManager:BindAction(Enum.KeyCode.Z, "ToggleMouse", ToggleMouse, nil),
+			InputManager:BindAction(Enum.KeyCode.V, "SwapShoulder", SwapShoulder, nil)
 		)
-		CamJobID = MetronomeService:BindToFrequency(60, UpdateCamera)
+
+		CamJobID = MetronomeService:BindToHeartbeat(UpdateCamera)
 	else
 		if (CamJobID ~= nil) then
 			BindingMaid:DoCleaning()
-			MetronomeService:Unbind(CamJobID)
+			MetronomeService:UnbindFromHeartbeat(CamJobID)
 			CamJobID = nil
 		end
 	end
@@ -48,14 +131,41 @@ function CameraController:EngineInit()
 	InputManager = self.Services.InputManager
 	EntityService = self.Services.EntityService
 
+	Camera = workspace.CurrentCamera
+
 	BindingMaid = self.Classes.Maid.new()
 
 	self.FirstEntityReady = self.Classes.Signal.new()
 
-	CurrentLook = {
+	TargetLook = {
+		OriginX = 0;
+		OriginY = 0;
+		OriginYaw = 0;
+		OriginPitch = 0;
+
+		OffsetX = 2;
+		OffsetY = 1;
 		Yaw = 0;
 		Pitch = 0;
 		Zoom = 3;
+	}
+
+	Springs = {
+		OriginX = self.Classes.ConstrainedSpring.new(2, 2, -3, 3);
+		OriginY = self.Classes.ConstrainedSpring.new(2, 1, -3, 3);
+		OriginYaw = self.Classes.Spring.new(2, 0);
+		OriginPitch = self.Classes.ConstrainedSpring.new(2, -30, MIN_PITCH, MAX_PITCH);
+
+		OffsetX = self.Classes.ConstrainedSpring.new(2, 2, -3, 3);
+		OffsetY = self.Classes.ConstrainedSpring.new(2, 1, -3, 3);
+		Yaw = self.Classes.Spring.new(60, 0);
+		Pitch = self.Classes.ConstrainedSpring.new(60, -30, MIN_PITCH, MAX_PITCH);
+		Zoom = self.Classes.ConstrainedSpring.new(4, 8, MIN_ZOOM, MAX_ZOOM);
+	}
+
+	States = {
+		MouseLocked = false;
+		Shoulder = 1;
 	}
 
 	EntityService.EntityCreated:Connect(function(base)
@@ -73,8 +183,7 @@ end
 
 
 function CameraController:EngineStart()
-	LocalPlayer = self.LocalPlayer
-	workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
+	Camera.CameraType = Enum.CameraType.Scriptable
 
 	if (CurrentEntity == nil) then
 		self.FirstEntityReady:Wait()
@@ -85,3 +194,17 @@ end
 
 
 return CameraController
+
+
+--[[
+	Sensitivities(?) ripped from corescripts
+	local NAV_GAMEPAD_SPEED  = Vector3.new(1, 1, 1)
+	local NAV_KEYBOARD_SPEED = Vector3.new(1, 1, 1)
+	local PAN_MOUSE_SPEED    = Vector2.new(1, 1)*(pi/64)
+	local PAN_GAMEPAD_SPEED  = Vector2.new(1, 1)*(pi/8)
+	local FOV_WHEEL_SPEED    = 1.0
+	local FOV_GAMEPAD_SPEED  = 0.25
+	local NAV_ADJ_SPEED      = 0.75
+	local NAV_SHIFT_MUL      = 0.25
+	*0.4
+]]
