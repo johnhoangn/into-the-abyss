@@ -92,12 +92,12 @@ end
 
 function CharacterController:EngineStart()
 	LocalPlayer = self.LocalPlayer
-	require(LocalPlayer.PlayerScripts.PlayerModule):GetControls():Enable(false)
+	require(LocalPlayer.PlayerScripts.PlayerModule):GetControls():Disable()
 
 	if (CurrentEntity == nil) then
 		self.FirstEntityReady:Wait()
 	end
-	
+
 	CharacterController:Enable(true)
 end
 

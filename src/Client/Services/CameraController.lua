@@ -225,12 +225,11 @@ end
 
 
 function CameraController:EngineStart()
-	Camera.CameraType = Enum.CameraType.Scriptable
-
 	if (CurrentEntity == nil) then
 		self.FirstEntityReady:Wait()
 	end
-	
+
+	Camera.CameraType = Enum.CameraType.Scriptable
 	CameraController:Enable(true)
 end
 

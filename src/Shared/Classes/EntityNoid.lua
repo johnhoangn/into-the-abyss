@@ -90,7 +90,8 @@ end
 
 function EntityNoid:Jump()
 	self.StateMachine:Transition(Transitions.Jump)
-	self.Root:ApplyImpulse(Vector3.new(0, 50, 0) * self.Root.AssemblyMass)
+	self.Base.Humanoid.Jump = true
+	--self.Root:ApplyImpulse(Vector3.new(0, 50, 0) * self.Root.AssemblyMass)
 end
 
 
