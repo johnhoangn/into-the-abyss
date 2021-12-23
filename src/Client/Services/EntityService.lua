@@ -61,7 +61,18 @@ local function RenderJob(dt)
         local function ProcessEntity(base, entity)
             -- Async due to potential asset downloads
             if (entity.MustRender or DistanceTo(entity) < RENDER_DISTANCE) then
-                entity:Draw(dt)
+				local s, e = pcall(entity.Draw, entity, dt)
+				if (not s) then
+					warn("-------------------------------------------")
+					EntityService:Warn("DRAW ERROR: ", base, e)
+					local errModel = EntityService.Services.AssetService:GetAsset("00FFFF").Model:Clone()
+					errModel:PivotTo(base.PrimaryPart.CFrame)
+					errModel.PrimaryPart.Root.Part0 = base.PrimaryPart
+					errModel.Parent = base
+					warn(entity)
+					warn("-------------------------------------------")
+					VisibleEntities:Remove(base)
+				end
 				entity:UpdateState()
             else
                 table.insert(RenderBuffer, base)

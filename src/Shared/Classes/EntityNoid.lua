@@ -128,6 +128,7 @@ end
 -- Renders this EntityNoid
 function EntityNoid:Draw(dt)
     if (self.Skin == nil) then
+		self.Skin = false -- Blocks redundant call mid asset downloads below
         local skin = self.SkinAsset.Model:Clone()
         local parts = {}
 
@@ -152,8 +153,11 @@ function EntityNoid:Draw(dt)
 			end
 		end
 
-        self.Skin = skin
-        self._Parts = parts
+		-- If we were hidden (Skin = false -> nil) we cancel the draw here
+		if (self.Skin == false) then
+			self.Skin = skin
+			self._Parts = parts
+		end
 	elseif (self._Animator ~= nil) then
 		self._Animator:Step(dt)
     end

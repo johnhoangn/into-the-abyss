@@ -23,7 +23,7 @@ setmetatable(Animator, DeepObject)
 -- @param entity <Entity> to play animations for
 function Animator.new(entity)
 	local self = setmetatable(DeepObject.new({
-		_Controller = entity.Base:FindFirstChild("Humanoid");
+		_Controller = entity.Base:WaitForChild("Humanoid", 5);
 
 		_CoreLock = nil;
 		_CachedTracks = nil;
