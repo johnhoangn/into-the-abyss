@@ -19,7 +19,7 @@ local Engine = {
 
 	DebugLevel = 1;
 
-	_ServiceName = "Deep Engine Client";
+	_ServiceName = "DGF Client";
 }
 
 
@@ -73,10 +73,10 @@ end
 
 -- Console debugging
 function Engine:Print(...)
-	print(self._ServiceName .. "\n", ...)
+	print(self._ServiceName .. "\n >>>", ...)
 end
 function Engine:Warn(...)
-	warn(self._ServiceName .. "\n", ...)
+	warn(self._ServiceName .. "\n >>>", ...)
 end
 function Engine:Log(level, ...)
 	if (level <= Engine.DebugLevel) then
@@ -255,5 +255,4 @@ for _, child in ipairs(ClientFolder.Parent:GetChildren()) do
 	end
 end
 
-
-print("Done!")
+Engine:Print("Done!")
