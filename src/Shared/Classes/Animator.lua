@@ -13,13 +13,37 @@
 local DEFAULT_FADE_TIME = 0.1
 
 
+local Engine = _G.Deep
+local Parser = Engine.Modules.KeyframeMarkerArgumentParser
+local HttpService = Engine.RBXServices.HttpService
+local SoundClassID = Engine.Enums.AssetClass.Sound
 local DeepObject = require(script.Parent.DeepObject)
 local Animator = {States = {Disabled = 0, Enabled = 1}}
 Animator.__index = Animator
 setmetatable(Animator, DeepObject)
 
 
--- TODO: CONVERT "ACTIONTRACK" TO "ACTIONTRACK~S~" AS MULTIPLE ACTIONS CAN PLAY/END AT ONCE
+-- Generates a callback suitable for receiving keyframe marker signals
+-- @param trigger <string> trigger type
+local function TriggerFactory(trigger)
+	if (trigger == "Sound") then
+		return function(params)
+			local args = Parser:Parse(params)
+			Engine.Services.SoundService:PlaySound(
+				Engine.Enums.SoundClass[
+					params.SoundClass 
+					or Engine.Enums.SoundClass.Effect
+				],
+				SoundClassID .. args.AssetID, 
+				params
+			)
+		end
+	elseif (trigger == "Effect") then
+		return nil
+	end
+end
+
+
 -- @param entity <Entity> to play animations for
 function Animator.new(entity)
 	local self = setmetatable(DeepObject.new({
@@ -28,54 +52,43 @@ function Animator.new(entity)
 		_CoreLock = nil;
 		_CachedTracks = nil;
 		_CurrentCoreTrack = nil;
-		_CurrentActionTrack = nil;
-
 		_CurrentCoreTrackName = nil;
-		_CurrentActionTrackName = nil;
-
 		_CoreTrackTime = 0;
-		_ActionTrackTime = 0;
+
+		_MarkerTriggers = nil;
+
+		_CurrentActions = nil;
 
 		_Entity = entity;
 
 		State = Animator.States.Disabled;
 	}), Animator)
 
+	assert(self._Controller ~= nil, "Humanoid never loaded " .. entity.Base.Name)
+
 	self._CoreLock = self.Classes.Mutex.new()
 	self._CachedTracks = self.Classes.IndexedMap.new()
+	self._MarkerTriggers = self.Classes.IndexedMap.new()
+	self._CurrentActions = self.Classes.IndexedMap.new()
 
 	local coreAnimatorModule = self.Services.AnimationService
 		:GetCoreAnimatorModule(entity.SkinAsset.CoreAnimator)
-		
+
 	self:LoadCoreModule(require(coreAnimatorModule))
 
+	-- Plays and stops state-related action animations
 	entity.StateMachine.StateChanged:Connect(function(from, to)
 		if (to == entity.StateMachine.States.Jumping) then
-			--print("Jump action!")
-			--self:PlayAction("DefaultBloxianJump001")
+			self._JumpActionID = self:PlayAction(self:PickJumpTrack())
 		elseif (from == entity.StateMachine.States.Jumping) then
-			--print("Jump stop action!")
-			--self:StopAction("DefaultBloxianJump001")
+			if (self._JumpActionID) then
+				self:StopAction(self._JumpActionID)
+				self._JumpActionID = nil
+			end
 		end
 	end)
 
 	return self
-end
-
-
--- Resumes any playing animations where they left off
-function Animator:Resume()
-	self.State = self.States.Enabled
-
-	-- Resume core
-	local coreTrackName = self:PickCoreTrack()
-	self:PlayCore(coreTrackName)
-	self._CurrentCoreTrack.TimePosition = self._CoreTrackTime
-
-	-- Resume action
-	if (self._CurrentActionTrackName) then
-		self:PlayAction(self._CurrentActionTrackName)
-	end
 end
 
 
@@ -96,27 +109,34 @@ function Animator:PickCoreTrack()
 end
 
 
--- Records where the animations are in time
-function Animator:Pause()
-	self._CoreTrackTime = self._CurrentCoreTrack.TimePosition
-	self._ActionTrackTime = self._CurrentActionTrack.TimePosition
-	
-	if (self._CurrentCoreTrack) then
-		self._CurrentCoreTrack:Stop(DEFAULT_FADE_TIME)
-		self._CurrentCoreTrack = nil
+-- Special core track getter
+function Animator:PickJumpTrack()
+	return "BloxianDefaultJump001"
+end
+
+
+-- Reads triggermap and binds the markers to respective actions
+-- @param track <AnimationTrack>
+-- @param triggerMap <table>
+function Animator:BindTriggers(track, triggerMap)
+	local bindingMaid = self.Classes.Maid.new()
+
+	for marker, trigger in pairs(triggerMap) do
+		bindingMaid:GiveTask(track:GetMarkerReachedSignal(marker):Connect(TriggerFactory(trigger)))
 	end
 
-	if (self._CurrentActionTrack) then
-		self._CurrentActionTrack:Stop(DEFAULT_FADE_TIME)
-		self._CurrentActionTrack = nil
-	end
+	self._MarkerTriggers:Add(track.Name, bindingMaid)
 end
 
 
 -- Plays an animation on the core layer
 -- Stops the previous core layer track
 -- @param trackName <string>
-function Animator:PlayCore(trackName, fade, weight, rate)
+-- @param fade <number>
+-- @param weight <number>
+-- @param rate <number>
+-- @param triggerMap <table> == nil
+function Animator:PlayCore(trackName, fade, weight, rate, triggerMap)
 	if (not self._CoreLock:TryLock()) then return end
 
 	if (self._CurrentCoreTrack ~= nil) then
@@ -129,7 +149,6 @@ function Animator:PlayCore(trackName, fade, weight, rate)
 	end
 
 	local coreTrack = self._CachedTracks:Get(trackName)
-	self._CurrentCoreTrackName = trackName
 
 	if (coreTrack == nil) then
 		local animation = self.Services.AnimationService:GetAnimation(trackName)
@@ -141,10 +160,15 @@ function Animator:PlayCore(trackName, fade, weight, rate)
 			return
 		end
 
+		if (triggerMap ~= nil) then
+			self:BindTriggers(trackName, triggerMap)
+		end
+
 		coreTrack = self._Controller:LoadAnimation(animation)
 		self._CachedTracks:Add(trackName, coreTrack)
 	end
 
+	self._CurrentCoreTrackName = trackName
 	self._CurrentCoreTrack = coreTrack
 	coreTrack:Play(fade or DEFAULT_FADE_TIME, weight or 1, rate or 1)
 	self._CoreLock:Unlock()
@@ -153,8 +177,14 @@ end
 
 -- Plays an animation on the action layer
 -- FOR NOW, stops the previous action layer track
+-- @param trackName <string>
+-- @param fade <number>
+-- @param weight <number>
+-- @param rate <number>
+-- @returns trackID
 function Animator:PlayAction(trackName, fade, weight, rate)
-	local actionTrack = self._CachedTracks:Get(self._CurrentActionTrackName)
+	local actionTrack = self._CachedTracks:Get(trackName)
+	local actionID = HttpService:GenerateGUID()
 
 	if (actionTrack == nil) then
 		local animation = self.Services.AnimationService:GetAnimation(trackName)
@@ -166,21 +196,94 @@ function Animator:PlayAction(trackName, fade, weight, rate)
 		end
 
 		actionTrack = self._Controller:LoadAnimation(animation)
-		actionTrack.TimePosition = self._ActionTrackTime
+		self._CachedTracks:Add(trackName, actionTrack)
 	end
 
-	self._CurrentActionTrack = actionTrack
+	self._CurrentActions:Add(actionID, {
+		Track = actionTrack;
+		Name = trackName;
+	})
+
+	actionTrack.Priority = Enum.AnimationPriority.Action
 	actionTrack:Play(fade or DEFAULT_FADE_TIME, weight or 1, rate or 1)
+
+	return actionID
 end
 
 
-function Animator:StopAction(trackName, fade)
+-- Stops a previously playing action referred to by ID
+-- @param actionID <string>
+-- @param fade <number>
+function Animator:StopAction(actionID, fade) 
+	local action = self._CurrentActions:Get(actionID)
+
+	if (not action) then
+		self:Warn("Action wasn't playing!", actionID)
+		return
+	end
+
+	action.Track:Stop(fade)
+end
+
+
+-- Retrieves a playing track via actionID
+-- @param actionID <string>
+-- @return <AnimationTrack>
+function Animator:GetActionTrack(actionID)
+	return self._CurrentActions:Get(actionID).Track
+end
+
+
+-- Resumes any playing animations where they left off
+function Animator:Resume()
+	self.State = self.States.Enabled
+
+	-- Resume core
+	local coreTrackName = self:PickCoreTrack()
+	self:PlayCore(coreTrackName)
+	self._CurrentCoreTrack.TimePosition = self._CoreTrackTime
+
+	-- Resume action
+	if (self._CurrentActionTrackName) then
+		self:PlayAction(self._CurrentActionTrackName)
+	end
+end
+
+
+-- Records where the animations are in time
+function Animator:Pause()
+	if (self._CurrentCoreTrack) then
+		self._CoreTrackTime = self._CurrentCoreTrack.TimePosition
+		self._CurrentCoreTrack:Stop(DEFAULT_FADE_TIME)
+		self._CurrentCoreTrack = nil
+	end
+
+	if (self._CurrentActionTrack) then
+		self._ActionTrackTime = self._CurrentActionTrack.TimePosition
+		self._CurrentActionTrack:Stop(DEFAULT_FADE_TIME)
+		self._CurrentActionTrack = nil
+	end
 end
 
 
 -- Used to do core track selection
 function Animator:Step(dt)
 	error("Step() not implemented")
+end
+
+
+local superDestroy = Animator.Destroy
+function Animator:Destroy()
+	for _, track in self._CachedTracks:KeyIterator() do
+		track:Destroy()
+	end
+
+	for _, markerMaid in ipairs(self._MarkerTriggers) do
+		print("Destroy maid")
+		markerMaid:Destroy()
+	end
+
+	superDestroy(self)
 end
 
 

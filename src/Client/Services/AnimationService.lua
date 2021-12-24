@@ -31,7 +31,6 @@ function AnimationService:ManageEntityAnimator(entity)
 	-- Self cleanup when the entity is destroyed
 	autoDisconnector = entity.OnDestroyed:Connect(function()
 		autoDisconnector:Disconnect()
-		animator:Destroy()
 		ManagedAnimators:Remove(entity)
 	end)
 
@@ -72,7 +71,7 @@ function AnimationService:GetAnimation(animName)
 			if (animationName == animName) then
 				animation = anim
 			end
-			CachedAnimations:Add(animName, anim)
+			CachedAnimations:Add(animationName, anim)
 		end
 	end
 
