@@ -70,6 +70,7 @@ local function RenderJob(dt)
 					errModel.PrimaryPart.Root.Part0 = base.PrimaryPart
 					errModel.Parent = base
 					warn(entity)
+					warn("NumEntities:", AllEntities.Size)
 					warn("-------------------------------------------")
 					VisibleEntities:Remove(base)
 				end
@@ -173,6 +174,13 @@ function EntityService:CreateEntity(base, entityType, entityParams, noLock)
         CacheMutex:Unlock()
     end
 
+	-- Auto cleanup
+	base.PrimaryPart.AncestryChanged:Connect(function()
+		if (not base.PrimaryPart or not base.PrimaryPart:IsDescendantOf(workspace)) then
+			self:DestroyEntity(base)
+		end
+	end)
+
 	self.EntityCreated:Fire(base)
 
     return newEntity
@@ -182,6 +190,7 @@ end
 -- Removes an entity and its physical base
 -- @param base <Model>
 function EntityService:DestroyEntity(base)
+	CacheMutex:Lock()
     local entity = AllEntities:Get(base)
 
     if (entity ~= nil) then
@@ -192,6 +201,7 @@ function EntityService:DestroyEntity(base)
         self.EntityDestroyed:Fire(base)
         entity:Destroy()
     end
+	CacheMutex:Unlock()
 end
 
 

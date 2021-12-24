@@ -84,9 +84,11 @@ end
 -- Destroys this instance and its physical model along with it
 local superDestroy = Entity.Destroy
 function Entity:Destroy()
-	self.Base:Destroy()
-	self.Base = nil
-	superDestroy()
+	if (self.Base.PrimaryPart ~= nil) then
+		self.Base:Destroy()
+		self.Base = nil
+	end
+	superDestroy(self)
 end
 
 

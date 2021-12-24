@@ -88,6 +88,13 @@ function EntityService:CreateEntity(base, entityType, entityParams)
     AllEntities:Add(base, newEntity)
     CacheMutex:Unlock()
 
+	-- Auto cleanup
+	base.PrimaryPart.AncestryChanged:Connect(function()
+		if (not base.PrimaryPart or not base.PrimaryPart:IsDescendantOf(workspace)) then
+			self:DestroyEntity(base)
+		end
+	end)
+	
 	self:AttachAttributes(base)
     self.EntityCreated:Fire(base)
 
