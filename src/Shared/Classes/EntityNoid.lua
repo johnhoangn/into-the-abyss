@@ -5,13 +5,12 @@
 
 
 
+local Engine = _G.Deep
+local AssetService = Engine.Services.AssetService
 local Entity = require(script.Parent.Entity)
 local EntityNoid = {}
 EntityNoid.__index = EntityNoid
 setmetatable(EntityNoid, Entity)
-
-
-local AssetService
 
 
 local Transitions = {
@@ -109,8 +108,6 @@ if (game:GetService("Players").LocalPlayer == nil) then return EntityNoid end
 -- Client constructor variant, adds on data that only the client needs
 local new = EntityNoid.new
 function EntityNoid.new(...)
-	AssetService = AssetService or Entity.Services.AssetService
-
 	local self = new(...)
 	local asset = AssetService:GetAsset(self.InitialParams._SkinID)
 
@@ -204,7 +201,7 @@ function EntityNoid:Destroy()
 		self._Animator:Destroy()
 	end
 
-    superDestroy()
+    superDestroy(self)
 end
 
 
