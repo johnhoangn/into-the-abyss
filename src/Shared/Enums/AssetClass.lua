@@ -12,4 +12,6 @@ return {
 
 	AnimationPack = 4;
 	CoreAnimator = 5;
+
+	EntityFace = 6;
 }
