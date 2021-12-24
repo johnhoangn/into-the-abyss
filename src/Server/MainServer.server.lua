@@ -287,6 +287,11 @@ Clients.CharacterAutoLoads = true
 local function PrepareWaitingClients()
 	for _, client in ipairs(game:GetService("Players"):GetPlayers()) do
 		Client:Clone().Parent = client
+	end
+
+	wait(2)
+
+	for _, client in ipairs(game:GetService("Players"):GetPlayers()) do
 		if (client.Character == nil) then
 			client:LoadCharacter()
 		end
