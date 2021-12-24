@@ -130,7 +130,7 @@ end
 
 
 -- Flips which side the camera is on
-local function SwapShoulder(_object, _proc)
+local function SwapShoulder(object, _proc)
 	States.Shoulder *= -1
 end
 
@@ -150,8 +150,8 @@ function CameraController:Enable(bool)
 			InputManager:BindAction(Enum.UserInputType.MouseWheel, "ZoomCamera", ModZoom, nil),
 			InputManager:BindAction(Enum.UserInputType.MouseButton2, "PanCamera", PanCamera, nil),
 			
-			InputManager:BindAction(Enum.KeyCode.Z, "ToggleMouse", ToggleMouse, nil),
-			InputManager:BindAction(Enum.KeyCode.V, "SwapShoulder", SwapShoulder, nil)
+			InputManager:BindAction(Enum.KeyCode.Z, "ToggleMouse", ToggleMouse, Enum.UserInputState.Begin),
+			InputManager:BindAction(Enum.KeyCode.V, "SwapShoulder", SwapShoulder, Enum.UserInputState.Begin)
 		)
 
 		CamJobID = MetronomeService:BindToHeartbeat(UpdateCamera)
