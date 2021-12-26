@@ -32,7 +32,7 @@
 local NIL_TOKEN = "\n"
 
 
-local DataService = { NIL_TOKEN = NIL_TOKEN }
+local DataService = { NIL_TOKEN = NIL_TOKEN; Priority = 300 }
 local Network, Players, ProfileUtil
 
 
@@ -43,41 +43,55 @@ local GameProfileStore
 -- Loads or creates the client's profile
 -- @param client <Player>
 local function HandleClientJoin(client)
-	local profile = GameProfileStore:LoadProfileAsync(
-		"Player_" .. client.UserId,
-		"ForceLoad"
-	)
+	local triesLeft = 5
+	local profile
 	
-	if profile ~= nil then
-		profile:Reconcile() -- Fill in missing variables from ProfileTemplate (optional)
-		
-		profile:ListenToRelease(function()
-			ActiveProfiles[client] = nil
-			-- The profile could've been loaded on another Roblox server:
-			client:Kick()
-		end)
-		
-		if client:IsDescendantOf(Players) == true then
-			-- A profile has been successfully loaded:
-			ActiveProfiles[client] = profile
-			
+	while (not profile and triesLeft > 0) do
+		profile = GameProfileStore:LoadProfileAsync(
+			"Player_" .. client.UserId,
+			"ForceLoad"
+		)
+
+		if (profile ~= nil) then
+			profile:AddUserId(client.UserId) -- GDPR compliance
+			profile:Reconcile() -- Fill in missing variables from ProfileTemplate (optional)
+
+			profile:ListenToRelease(function()
+				ActiveProfiles[client] = nil
+				-- The profile could've been loaded on another Roblox server:
+				client:Kick(DataService.Enums.KickMessages.DataLoadViolation)
+			end)
+
+			if (client:IsDescendantOf(Players)) then
+				-- A profile has been successfully loaded:
+				ActiveProfiles[client] = profile
+			else
+				-- Player left before the profile loaded:
+				profile:Release()
+			end
+
+			DataService.DataReady:Fire(client)
+
+			-- Replicate
+			Network:FireClient(client, Network:Pack(
+				Network.NetProtocol.Forget, 
+				Network.NetRequestType.DataStream,
+				profile.Data
+			))
 		else
-			-- Player left before the profile loaded:
-			profile:Release()
+			DataService:Warn("Profile failed to load!", client, "(" .. triesLeft .. ")")
 		end
-		
-	else
+
+		triesLeft -= 1
+		wait(1)
+	end
+
+
+	if (not profile) then
 		-- The profile couldn't be loaded possibly due to other
 		-- 	Roblox servers trying to load this profile at the same time:
-		client:Kick() 
+		client:Kick(DataService.Enums.KickMessages.DataLoadViolation) 
 	end
-	
-	-- Replicate
-	Network:FireClient(client, Network:Pack(
-		Network.NetProtocol.Forget, 
-		Network.NetRequestType.DataStream,
-		profile.Data
-	))
 end
 
 
@@ -96,6 +110,38 @@ end
 function DataService:GetData(client)
     local profile = ActiveProfiles[client]
 	return profile ~= nil and profile.Data or nil
+end
+
+
+-- Attempts to get data for client, and will yield for it
+-- @param client <Player>
+-- @param timeout <number>
+function DataService:WaitData(client, timeout)
+	local data = self:GetData(client)
+
+	if (not data) then
+		local retrieved = self.Classes.Signal.new()
+		local ready
+
+		self.Modules.ThreadUtil.Delay(timeout or 5, function()
+			if (data == nil) then
+				ready:Disconnect()
+				retrieved:Fire()
+			end
+		end)
+
+		ready = self.DataReady:Connect(function(_client)
+			if (_client == client) then
+				data = self:GetData(_client)
+				retrieved:Fire()
+			end
+		end)
+
+		ready:Disconnect()
+		retrieved:Wait()
+	end
+
+	return data
 end
 
 
@@ -205,6 +251,7 @@ function DataService:EngineInit()
 	ProfileUtil = self.Modules.SaveProfileUtil
 	
 	ActiveProfiles = {}
+	self.DataReady = self.Classes.Signal.new()
 	
 	GameProfileStore = ProfileUtil.GetProfileStore(
 		"PlayerData",
@@ -214,15 +261,8 @@ end
 
 
 function DataService:EngineStart()
-	Players.PlayerAdded:Connect(HandleClientJoin)
-	Players.PlayerRemoving:Connect(HandleClientLeave)
-
-	-- Process already joined players
-	for _, unHandledPlayer in ipairs(Players:GetPlayers()) do
-		if (self:GetData(unHandledPlayer) == nil) then
-			HandleClientJoin(unHandledPlayer)
-		end
-	end
+	self.Services.PlayerService:AddJoinTask(HandleClientJoin, "DataJoin")
+	self.Services.PlayerService:AddLeaveTask(HandleClientLeave, "DataLeave")
 end
 
 
