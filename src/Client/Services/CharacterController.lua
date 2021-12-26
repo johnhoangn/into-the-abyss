@@ -23,8 +23,8 @@ end
 
 
 local function ModDir(dir, coeff)
-	return function(object, _proc)
-		CurrentMove[dir] += coeff * (object.UserInputState == Enum.UserInputState.Begin and 1 or -1)
+	return function(object, proc)
+		CurrentMove[dir] += coeff * (object.UserInputState == Enum.UserInputState.Begin and not proc and 1 or -1)
 	end
 end
 
