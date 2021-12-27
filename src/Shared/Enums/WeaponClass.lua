@@ -1,0 +1,3 @@
+return {
+	Greatsword = 0;
+}

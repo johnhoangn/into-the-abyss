@@ -32,7 +32,7 @@
 local NIL_TOKEN = "\n"
 
 
-local DataService = { NIL_TOKEN = NIL_TOKEN }
+local DataService = { NIL_TOKEN = NIL_TOKEN; Priority = 499 }
 local Network, Players, ProfileUtil
 
 
@@ -42,42 +42,44 @@ local GameProfileStore
 
 -- Loads or creates the client's profile
 -- @param client <Player>
-local function HandleClientJoin(client)
-	local profile = GameProfileStore:LoadProfileAsync(
-		"Player_" .. client.UserId,
-		"ForceLoad"
-	)
+local function HandleClientJoin(client) print("Joined", client)
+	local triesLeft = 5
+	local profile
 	
-	if profile ~= nil then
-		profile:Reconcile() -- Fill in missing variables from ProfileTemplate (optional)
-		
-		profile:ListenToRelease(function()
-			ActiveProfiles[client] = nil
-			-- The profile could've been loaded on another Roblox server:
-			client:Kick()
-		end)
-		
-		if client:IsDescendantOf(Players) == true then
-			-- A profile has been successfully loaded:
-			ActiveProfiles[client] = profile
-			
-		else
-			-- Player left before the profile loaded:
-			profile:Release()
+	while (not profile and triesLeft > 0) do
+		profile = GameProfileStore:LoadProfileAsync("Player_" .. client.UserId)
+
+		if (profile ~= nil) then
+			profile:AddUserId(client.UserId) -- GDPR compliance
+			profile:Reconcile() -- Fill in missing variables from ProfileTemplate (optional)
+
+			profile:ListenToRelease(function()
+				ActiveProfiles[client] = nil
+				-- The profile could've been loaded on another Roblox server:
+				client:Kick(DataService.Enums.KickMessages.DataLoadViolation)
+			end)
+
+			if (client:IsDescendantOf(Players)) then
+				-- A profile has been successfully loaded:
+				ActiveProfiles[client] = profile
+			else
+				-- Player left before the profile loaded:
+				profile:Release()
+			end
+
+			DataService.DataReady:Fire(client)
+
+			-- Replicate
+			Network:FireClient(client, Network:Pack(
+				Network.NetProtocol.Forget, 
+				Network.NetRequestType.DataStream,
+				profile.Data
+			))
 		end
-		
-	else
-		-- The profile couldn't be loaded possibly due to other
-		-- 	Roblox servers trying to load this profile at the same time:
-		client:Kick() 
+
+		triesLeft -= 1
+		wait(1)
 	end
-	
-	-- Replicate
-	Network:FireClient(client, Network:Pack(
-		Network.NetProtocol.Forget, 
-		Network.NetRequestType.DataStream,
-		profile.Data
-	))
 end
 
 

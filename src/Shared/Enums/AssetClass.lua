@@ -14,4 +14,9 @@ return {
 	CoreAnimator = 5;
 
 	EntityFace = 6;
+
+	Junk = 7;
+	Ware = 8;
+	Weapon = 9;
+	Consumable = 10;
 }

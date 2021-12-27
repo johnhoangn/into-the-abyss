@@ -12,10 +12,11 @@ local JoinTasks, LeaveTasks
 
 
 function PlayerService:ExecuteJoinTasks(user)
-	for _, task in JoinTasks:KeyIterator() do
+	for name, task in JoinTasks:KeyIterator() do
+		-- self:Print("Executing", name, "for", user)
 		if (task.Processed[user]) then continue end
-		task.Callback(user)
 		task.Processed[user] = true
+		task.Callback(user)
 	end
 end
 
@@ -64,10 +65,6 @@ function PlayerService:EngineStart()
 	Players.PlayerRemoving:Connect(function(user)
 		PlayerService:ExecuteLeaveTasks(user)
 	end)
-
-	for _, user in ipairs(Players:GetPlayers()) do
-		PlayerService:ExecuteJoinTasks(user)
-	end
 end
 
 
