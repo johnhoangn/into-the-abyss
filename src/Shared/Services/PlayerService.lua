@@ -12,18 +12,18 @@ local JoinTasks, LeaveTasks
 
 
 function PlayerService:ExecuteJoinTasks(user)
-	for name, task in JoinTasks:KeyIterator() do
+	for _name, joinTask in JoinTasks:KeyIterator() do
 		-- self:Print("Executing", name, "for", user)
-		if (task.Processed[user]) then continue end
-		task.Processed[user] = true
-		task.Callback(user)
+		if (joinTask.Processed[user]) then continue end
+		joinTask.Processed[user] = true
+		self.Modules.ThreadUtil.Spawn(joinTask.Callback, user)
 	end
 end
 
 
 function PlayerService:ExecuteLeaveTasks(user)
-	for _, task in LeaveTasks:KeyIterator() do
-		task(user)
+	for _, leaveTask in LeaveTasks:KeyIterator() do
+		self.Modules.ThreadUtil.Spawn(leaveTask, user)
 	end
 end
 
