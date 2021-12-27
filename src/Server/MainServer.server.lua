@@ -157,8 +157,8 @@ end
 -- @returns completion Signal
 local function StartServices(numServices)
 	local completed = Engine.Classes.Signal.new()
-	
-	for _, service in pairs(Engine.Services) do
+
+	for _name, service in pairs(Engine.Services) do
 		Engine.Modules.ThreadUtil.Spawn(function()
 			service:EngineStart()
 			numServices -= 1
