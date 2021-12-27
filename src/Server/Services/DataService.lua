@@ -42,7 +42,7 @@ local GameProfileStore
 
 -- Loads or creates the client's profile
 -- @param client <Player>
-local function HandleClientJoin(client) print("Joined", client)
+local function HandleClientJoin(client)
 	local triesLeft = 5
 	local profile
 	
@@ -75,10 +75,19 @@ local function HandleClientJoin(client) print("Joined", client)
 				Network.NetRequestType.DataStream,
 				profile.Data
 			))
+		else
+			DataService:Warn("Profile failed to load!", client, "(" .. triesLeft .. ")")
 		end
 
 		triesLeft -= 1
 		wait(1)
+	end
+
+
+	if (not profile) then
+		-- The profile couldn't be loaded possibly due to other
+		-- 	Roblox servers trying to load this profile at the same time:
+		client:Kick(DataService.Enums.KickMessages.DataLoadViolation) 
 	end
 end
 
@@ -98,6 +107,38 @@ end
 function DataService:GetData(client)
     local profile = ActiveProfiles[client]
 	return profile ~= nil and profile.Data or nil
+end
+
+
+-- Attempts to get data for client, and will yield for it
+-- @param client <Player>
+-- @param timeout <number>
+function DataService:WaitData(client, timeout)
+	local data = self:GetData(client)
+
+	if (not data) then
+		local retrieved = self.Classes.Signal.new()
+		local ready
+
+		self.Modules.ThreadUtil.Delay(timeout or 5, function()
+			if (data == nil) then
+				ready:Disconnect()
+				retrieved:Fire()
+			end
+		end)
+
+		ready = self.DataReady:Connect(function(_client)
+			if (_client == client) then
+				data = self:GetData(_client)
+				retrieved:Fire()
+			end
+		end)
+
+		ready:Disconnect()
+		retrieved:Wait()
+	end
+
+	return data
 end
 
 
@@ -207,6 +248,7 @@ function DataService:EngineInit()
 	ProfileUtil = self.Modules.SaveProfileUtil
 	
 	ActiveProfiles = {}
+	self.DataReady = self.Classes.Signal.new()
 	
 	GameProfileStore = ProfileUtil.GetProfileStore(
 		"PlayerData",
@@ -216,15 +258,8 @@ end
 
 
 function DataService:EngineStart()
-	Players.PlayerAdded:Connect(HandleClientJoin)
-	Players.PlayerRemoving:Connect(HandleClientLeave)
-
-	-- Process already joined players
-	for _, unHandledPlayer in ipairs(Players:GetPlayers()) do
-		if (self:GetData(unHandledPlayer) == nil) then
-			HandleClientJoin(unHandledPlayer)
-		end
-	end
+	self.Services.PlayerService:AddJoinTask(HandleClientJoin, "DataJoin")
+	self.Services.PlayerService:AddLeaveTask(HandleClientLeave, "DataLeave")
 end
 
 
