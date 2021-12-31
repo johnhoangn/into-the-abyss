@@ -80,7 +80,10 @@ local function HandleClientJoin(client)
 		end
 
 		triesLeft -= 1
-		wait(1)
+
+		if (not profile) then
+			wait(1)
+		end
 	end
 
 
@@ -129,12 +132,12 @@ function DataService:WaitData(client, timeout)
 
 		ready = self.DataReady:Connect(function(_client)
 			if (_client == client) then
+				ready:Disconnect()
 				data = self:GetData(_client)
 				retrieved:Fire()
 			end
 		end)
 
-		ready:Disconnect()
 		retrieved:Wait()
 	end
 
@@ -153,14 +156,14 @@ function DataService:SetKeys(client, routeString, changeDictionary, doNotReplica
 	-- Incase it was unloaded by the time we try to change keys
 	if (root ~= nil) then
 		for subDir in string.gmatch(routeString, "%w+") do
-			assert(root[subDir] ~= nil, 
+			assert(root[subDir] ~= nil or root[tonumber(subDir)], 
 				string.format(
 					"Cannot reach (%s), invalid route (%s)", 
 					subDir, 
 					routeString
 				)
 			)
-			root = root[subDir]
+			root = root[subDir] or root[tonumber(subDir)]
 		end
 		
 		-- Apply
@@ -194,6 +197,10 @@ end
 -- @param value <any>
 -- @param doNotReplicate <boolean> == false
 function DataService:SetKey(client, routeString, key, value, doNotReplicate)
+	if (value == nil) then
+		value = NIL_TOKEN
+	end
+
 	self:SetKeys(
 		client, 
 		routeString, 
