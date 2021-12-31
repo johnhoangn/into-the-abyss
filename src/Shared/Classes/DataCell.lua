@@ -28,11 +28,82 @@ end
 -- Sets a key under _Data to value (using IndexedMap)
 -- @param key <any>
 -- @param value <any>
--- @param nosignal <boolean>
+-- @param nosignal <boolean> do not signal a change
 function DataCell:Set(key, value, nosignal)
+	if (self:Get(key) == value) then
+		return
+	end
+
 	self._Data[key] = value
+
+	if (value == nil) then
+		value = self.Services.DataService.NIL_TOKEN
+	end
+
 	if (not nosignal) then
 		self.Changed:Fire(key, value)
+	end
+end
+
+
+-- Macro to read a data table
+-- @param dataTable <table>
+-- @param nosignal <boolean>
+function DataCell:ReadData(dataTable, nosignal)
+	self:Clear()
+	for key, value in pairs(dataTable) do
+		self:Set(key, value, nosignal)
+	end
+end
+
+
+-- Deep copies data from another cell into ours
+-- @param otherDataCell <DataCell>
+function DataCell:Copy(otherDataCell)
+	self:Clear()
+	for key, value in pairs(otherDataCell._Data) do
+		if (typeof(value) == "table") then
+			self:Set(key, self.Modules.TableUtil.Copy(value))
+		else
+			self:Set(key, value)
+		end		
+	end
+end
+
+
+-- Swap data with another cell
+-- Can be done more elegantly, but not worth the debugging
+-- @param otherDataCell <DataCell>
+function DataCell:Swap(otherDataCell)
+	local cache = {{}, {}}
+
+	-- Backup, _Data is "private," but same class def so we know if it
+	for key, val in pairs(self._Data) do
+		cache[1][key] = val
+	end
+	for key, val in pairs(otherDataCell._Data) do
+		cache[2][key] = val
+	end
+
+	-- Wipe
+	self:Clear()
+	otherDataCell:Clear()
+
+	-- Swap
+	for key, val in pairs(cache[1]) do
+		otherDataCell:Set(key, val)
+	end
+	for key, val in pairs(cache[2]) do
+		self:Set(key, val)
+	end
+end
+
+
+-- Wipes the data table of this DataCell
+-- @param nosignal <boolean>
+function DataCell:Clear(nosignal)
+	for k, _ in pairs(self._Data) do
+		self:Set(k, nil, nosignal)
 	end
 end
 

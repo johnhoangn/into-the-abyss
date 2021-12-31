@@ -3,7 +3,6 @@
 -- May 9, 2021
 
 --[[
-
 	Creating packets:
 	Network:Pack(protocol, requestType, ...)
 	
@@ -31,7 +30,7 @@ local RATE_LIMIT = 30
 
 
 local Network = {Priority = 500}
-local SyncService, HttpService, Players, BigBrother
+local HttpService, Players, BigBrother
 local NetProtocol, NetRequestType, PacketStatus
 local Router
 local TableUtil, ThreadUtil
@@ -44,7 +43,7 @@ local AwaitingResponses, RequestHandlers
 -- @param stamp
 -- @return [0, deltaTime]
 local function TimeDelta(stamp)
-	local now = SyncService:GetTime()
+	local now = workspace:GetServerTimeNow()
 	-- Damage control for high pingers
 	stamp = math.min(stamp, now + 1)
 	return math.max(0, now - stamp)
@@ -319,7 +318,6 @@ end
 
 
 function Network:EngineInit()
-	SyncService = self.Services.SyncService
 	BigBrother = nil --self.Services.BigBrother
 	
 	HttpService = self.RBXServices.HttpService
