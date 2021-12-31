@@ -23,7 +23,7 @@
 
 
 
-local NIL_TOKEN = "%n"
+local NIL_TOKEN = "\n"
 
 
 local DataService = { NIL_TOKEN = NIL_TOKEN }
@@ -31,16 +31,7 @@ local DataService = { NIL_TOKEN = NIL_TOKEN }
 
 local Network
 local DataCache
-
-
--- Receives, caches our data, and disconnects the initial data stream handler
--- @param dt <float>
--- @param data <table>
-local function ReceiveData(dt, data)
-	DataCache = data
-	-- We don't need this anymore
-	Network:UnhandleRequestType(Network.NetRequestType.DataStream)
-end
+local QueuedChanges
 
 
 -- Receives changes to a certain directory
@@ -50,19 +41,39 @@ end
 local function ReceiveChange(dt, routeString, changeDictionary)
 	local root = DataCache
 	
-	for subDir in string.gmatch(routeString, "%w+") do
-		root = root[subDir]
-	end
-	
-	-- Apply
-	for k, v in pairs(changeDictionary) do
-		if (v == NIL_TOKEN) then
-			root[k] = nil
-		else
-			root[k] = v
+	if (root) then
+		for subDir in string.gmatch(routeString, "%w+") do
+			root = root[subDir] or root[tonumber(subDir)]
 		end
+		
+		-- Apply
+		for k, v in pairs(changeDictionary) do
+			if (v == NIL_TOKEN) then
+				root[k] = nil
+			else
+				root[k] = v
+			end
+		end
+	else
+		QueuedChanges:Enqueue({dt, routeString, changeDictionary})
 	end
 end 
+
+
+-- Receives, caches our data, and disconnects the initial data stream handler
+-- @param dt <float>
+-- @param data <table>
+local function ReceiveData(_dt, data)
+	DataCache = data
+	-- We don't need this anymore
+	Network:UnhandleRequestType(Network.NetRequestType.DataStream)
+
+	while (not QueuedChanges:IsEmpty()) do
+		ReceiveChange(unpack(QueuedChanges:Dequeue()))
+	end
+
+	QueuedChanges = nil
+end
 
 
 -- Cache getter
@@ -74,14 +85,13 @@ end
 
 function DataService:EngineInit()
 	Network = self.Services.Network
+	QueuedChanges = self.Classes.Queue.new()
 end
 
 
 function DataService:EngineStart()
 	Network:HandleRequestType(Network.NetRequestType.DataStream, ReceiveData)
 	Network:HandleRequestType(Network.NetRequestType.DataChange, ReceiveChange)
-	-- DataChange is handled AFTER DataStream so 
-	--	I REALLY HOPE WE DON'T CHANGE DATA WHEN WE HAVE NO CACHE 
 end
 
 
