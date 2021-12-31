@@ -53,6 +53,8 @@ local function ReceiveChange(dt, routeString, changeDictionary)
 			else
 				root[k] = v
 			end
+
+			DataService.DataChanged:Fire(routeString, k, v)
 		end
 	else
 		QueuedChanges:Enqueue({dt, routeString, changeDictionary})
@@ -67,6 +69,9 @@ local function ReceiveData(_dt, data)
 	DataCache = data
 	-- We don't need this anymore
 	Network:UnhandleRequestType(Network.NetRequestType.DataStream)
+	DataService.DataReceived:Fire()
+	DataService.DataReceived:Destroy()
+	DataService.DataReceived = nil
 
 	while (not QueuedChanges:IsEmpty()) do
 		ReceiveChange(unpack(QueuedChanges:Dequeue()))
@@ -79,13 +84,16 @@ end
 -- Cache getter
 -- @returns <table>
 function DataService:GetCache()
-	return DataCache
+	return DataCache or self.DataReceived:Wait() and DataCache
 end
 
 
 function DataService:EngineInit()
 	Network = self.Services.Network
 	QueuedChanges = self.Classes.Queue.new()
+
+	self.DataChanged = self.Classes.Signal.new()
+	self.DataReceived = self.Classes.Signal.new()
 end
 
 
