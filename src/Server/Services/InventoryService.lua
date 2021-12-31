@@ -26,7 +26,6 @@ local InventoryService = { Priority = 90 }
 
 
 local INVENTORY_PATH = "Inventory."
-local UNINITIALIZED_INVENTORY = "UNINITIALIZED"
 local DEFAULT_INVENTORY_OVERRIDE = "Empty" -- Set this to a default inventory module config if desired
 
 
@@ -256,7 +255,7 @@ function InventoryService:Load(user)
 		return
 	end
 
-	if (data.Inventory == UNINITIALIZED_INVENTORY or DEFAULT_INVENTORY_OVERRIDE ~= nil) then
+	if (#data.Inventory == 0 or DEFAULT_INVENTORY_OVERRIDE ~= nil) then
 		DataService:SetKey(
 			user, 
 			"", 
