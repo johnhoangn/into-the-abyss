@@ -26,10 +26,10 @@ local MAX_BUDGET = 30
 
 
 local Network = {Priority = 500}
-local HttpService, MetronomeService
+local MetronomeService
 local NetProtocol, NetRequestType, PacketStatus
 local Router
-local TableUtil, ThreadUtil
+local TableUtil
 
 
 local Budget = MAX_BUDGET
@@ -248,7 +248,6 @@ end
 function Network:EngineInit()
 	MetronomeService = self.Services.MetronomeService
 	
-	HttpService = self.RBXServices.HttpService
 	Router = self.RBXServices.ReplicatedStorage.Router
 	
 	NetProtocol = self.Enums.NetProtocol
@@ -256,7 +255,6 @@ function Network:EngineInit()
 	PacketStatus = self.Enums.PacketStatus
 	
 	TableUtil = self.Modules.TableUtil
-	ThreadUtil = self.Modules.ThreadUtil
 	
 	AwaitingResponses = self.Classes.IndexedMap.new()
 	RequestHandlers = self.Classes.IndexedMap.new()
