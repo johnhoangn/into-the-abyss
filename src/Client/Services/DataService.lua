@@ -40,12 +40,12 @@ local QueuedChanges
 -- @param changeDictionary <table>
 local function ReceiveChange(dt, routeString, changeDictionary)
 	local root = DataCache
-	
+
 	if (root) then
 		for subDir in string.gmatch(routeString, "%w+") do
 			root = root[subDir] or root[tonumber(subDir)]
 		end
-		
+
 		-- Apply
 		for k, v in pairs(changeDictionary) do
 			if (v == NIL_TOKEN) then

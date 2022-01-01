@@ -26,4 +26,6 @@ return {
 
 	AnimationPackQuery = 3;
 	CoreAnimatorQuery = 4;
+
+	InventoryAction = 5;
 }

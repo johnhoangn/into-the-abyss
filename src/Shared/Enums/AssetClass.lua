@@ -19,4 +19,6 @@ return {
 	Ware = 8;
 	Weapon = 9;
 	Consumable = 10;
+	Material = 11;
+	Ingredient = 12;
 }

@@ -57,6 +57,12 @@ function DataCell:ReadData(dataTable, nosignal)
 end
 
 
+-- @returns <table> deepcopy of data
+function DataCell:GetData()
+	return self.Modules.TableUtil.Copy(self._Data)
+end
+
+
 -- Deep copies data from another cell into ours
 -- @param otherDataCell <DataCell>
 function DataCell:Copy(otherDataCell)

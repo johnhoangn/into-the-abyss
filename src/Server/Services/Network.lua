@@ -72,8 +72,8 @@ local function HandleInbound(client, packet)
 				local success, exitCode = pcall(function()
 					-- Swap the true requestType in
 					packet[5] = packet[6][1]
-					TableUtil.FastRemove(packet[6], 1)
-					
+					table.remove(packet[6], 1)
+
 					return HandleInbound(client, packet)
 				end)
 				
