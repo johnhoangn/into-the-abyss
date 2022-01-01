@@ -26,13 +26,13 @@ local InventoryService = { Priority = 90 }
 
 
 local INVENTORY_PATH = "Inventory."
-local UNINITIALIZED_INVENTORY = "UNINITIALIZED"
 local DEFAULT_INVENTORY_OVERRIDE = "Empty" -- Set this to a default inventory module config if desired
 
 
-local ItemService, PlayerService, DataService, AssetService
+local ItemService, PlayerService, DataService, AssetService, Network, DropService
 local DataCellType
 local Inventories
+local ActionMap
 
 
 
@@ -45,6 +45,21 @@ local function UpdaterFactory(user, cellIndex)
 	return function(key, val)
 		DataService:SetKey(user, INVENTORY_PATH .. cellIndex, key, val)
 	end
+end
+
+
+-- Responds to user requested inventory actions
+-- @param user <Player>
+-- @param dt <number>
+-- @param action <Enums.InventoryAction>
+-- @param ... action specific arguments
+local function InventoryActionRequestHandler(user, _dt, action, ...)
+	if (not ActionMap[action]) then
+		InventoryService:Warn("Invalid Inventory Action!", user, action)
+		return
+	end
+
+	return InventoryService[ActionMap[action]](InventoryService, user, ...)
 end
 
 
@@ -145,7 +160,7 @@ function InventoryService:Take(user, itemDescriptor, mustHaveAll, reverse)
 				removed += cellHas
 				toRemove -= cellHas				
 			else
-				cell:Set("Amount", toRemove)
+				cell:Set("Amount", cellHas - toRemove)
 				removed += toRemove
 				toRemove = 0
 				break
@@ -231,6 +246,24 @@ function InventoryService:Split(user, indexA, indexB, amount)
 end
 
 
+-- Drops an item out of the player's inventory
+-- @param user <Player>
+-- @param index <number>
+-- @param amount <number>
+-- @returns amount dropped
+function InventoryService:Drop(user, index, amount)
+	local inv = Inventories:Get(user)
+	local itemDescriptor = inv:Get(index):GetData()
+	local dropped = 0
+
+	itemDescriptor.Amount = amount or 1
+	dropped = self:Take(user, itemDescriptor, false, false)
+	--DropService:Drop(user, itemDescriptor)
+
+	return dropped
+end
+
+
 -- Informs the client whenever something changes in their inventory
 -- @param user <Player>
 -- @param inv <table>
@@ -256,7 +289,7 @@ function InventoryService:Load(user)
 		return
 	end
 
-	if (data.Inventory == UNINITIALIZED_INVENTORY or DEFAULT_INVENTORY_OVERRIDE ~= nil) then
+	if (#data.Inventory == 0 or DEFAULT_INVENTORY_OVERRIDE ~= nil) then
 		DataService:SetKey(
 			user, 
 			"", 
@@ -321,11 +354,18 @@ function InventoryService:EngineInit()
 	PlayerService = self.Services.PlayerService
 	DataService = self.Services.DataService
 	AssetService = self.Services.AssetService
+	Network = self.Services.Network
+	-- DropService = self.Services.DropService
 
 	DataCellType = self.Enums.DataCellType
 
 	Inventories = self.Classes.IndexedMap.new()
 	self.InventoryLoaded = self.Classes.Signal.new()
+
+	ActionMap = {}
+	for e, v in pairs(self.Enums.InventoryAction) do
+		ActionMap[v] = e
+	end
 end
 
 
@@ -333,6 +373,7 @@ function InventoryService:EngineStart()
 	PlayerService:AddJoinTask(function(user)
 		self:Load(user)
 	end, "InventoryLoader")
+	Network:HandleRequestType(Network.NetRequestType.InventoryAction, InventoryActionRequestHandler)
 end
 
 
