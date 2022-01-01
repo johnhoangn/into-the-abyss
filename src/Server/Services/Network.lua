@@ -342,20 +342,7 @@ end
 
 function Network:EngineStart()
 	Router.OnServerEvent:Connect(HandleInbound)
-    
     self:HandleRequestType(NetRequestType.BulkRequest, HandleBulkRequest)
-
-    --
-    ThreadUtil.Delay(5, function()
-        self:FireClient(Players:GetPlayers()[1], self:Pack(
-            NetProtocol.Forget,
-            NetRequestType.Test,
-            "Hello, world!",
-            "foo bar",
-            420
-        ))
-    end)
-    --]]
 end
 
 
