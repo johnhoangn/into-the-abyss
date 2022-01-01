@@ -84,7 +84,6 @@ end
 
 
 -- Attempts to give the player an item or items
--- TODO: If UID is not present in the itemDescriptor, first attempt to add into non-full duplicates 
 -- @param user <Player>
 -- @param itemDescriptor <table> { BaseID <string>; Amount <number?>; Info <table>: { UID <string?>; ...; } }
 -- @param mustGiveAll <boolean> == false, all or nothing
@@ -193,9 +192,8 @@ end
 
 -- Attempts to find matching non-full cells containing a stackable item of the same BaseID
 -- NOTE: None of these will ever have UID fields as those, obviously, cannot stack.
--- We also don't care about the Info
 -- @param user <Player>
--- @param itemDescriptor <table> { BaseID <string>; StackSize <number>; }
+-- @param itemDescriptor <table> { BaseID <string>; Info <table?>: { Crafter <userID?>; Enhance <number?> } }
 -- @returns number, <table> how much more we can carry, array of non-full duplicate BaseID cells
 function InventoryService:Duplicates(user, itemDescriptor)
 	local inv = Inventories:Get(user)
@@ -207,8 +205,12 @@ function InventoryService:Duplicates(user, itemDescriptor)
 	for _, index in ipairs(indices) do
 		local cell = inv:Get(index)
 		local cellHas = cell:Get("Amount")
+		local info = cell:Get("Info")
 
-		if (cellHas < stackSize) then
+		if (info.Crafter == itemDescriptor.Crafter
+			and info.Enhance == itemDescriptor.Enhance
+			and cellHas < stackSize) then
+
 			spaceFor += (stackSize - cellHas)
 			table.insert(dupes, index)
 		end

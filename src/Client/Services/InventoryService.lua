@@ -73,8 +73,7 @@ end
 
 -- Attempts to find matching non-full cells containing a stackable item of the same BaseID
 -- NOTE: None of these will ever have UID fields as those, obviously, cannot stack.
--- We also don't care about the Info
--- @param itemDescriptor <table> { BaseID <string>; StackSize <number>; }
+-- @param itemDescriptor <table> { BaseID <string>; Info <table?>: { Crafter <userID?>; Enhance <number?> } }
 -- @returns number, <table> how much more we can carry, array of non-full duplicate BaseID cells
 function InventoryService:Duplicates(itemDescriptor)
 	local asset = AssetService:GetAsset(itemDescriptor.BaseID)
@@ -85,8 +84,12 @@ function InventoryService:Duplicates(itemDescriptor)
 	for _, index in ipairs(indices) do
 		local cell = Inventory:Get(index)
 		local cellHas = cell:Get("Amount")
+		local info = cell:Get("Info")
 
-		if (cellHas < stackSize) then
+		if (info.Crafter == itemDescriptor.Crafter
+			and info.Enhance == itemDescriptor.Enhance
+			and cellHas < stackSize) then
+
 			spaceFor += (stackSize - cellHas)
 			table.insert(dupes, index)
 		end
