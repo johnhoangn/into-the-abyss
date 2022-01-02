@@ -11,7 +11,7 @@ setmetatable(DataCell, DeepObject)
 
 
 -- Creates a brand new data cell
--- @param cellType <Enum.DataCellType>
+-- @param cellType <Enums.DataCellType>
 -- @param data <table>
 function DataCell.new(cellType, data)
 	local self = setmetatable(DeepObject.new({
