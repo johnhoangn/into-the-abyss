@@ -1,26 +1,25 @@
--- InventoryDataCell, adds functionality only used by inventory cells
+-- ItemDataCell, adds functionality only used by inventory cells
 -- Dynamese(enduo)
 -- 12.31.2021
 
 
 
 local DataCell = require(script.Parent.DataCell)
-local InventoryDataCell = {}
-InventoryDataCell.__index = InventoryDataCell
-setmetatable(InventoryDataCell, DataCell)
+local ItemDataCell = {}
+ItemDataCell.__index = ItemDataCell
+setmetatable(ItemDataCell, DataCell)
 
 
 -- Creates a brand new data cell
--- @param cellType <Enum.InventoryDataCellType>
 -- @param data <table>
-function InventoryDataCell.new(cellType, data)
-	return setmetatable(DataCell.new(cellType, data), InventoryDataCell)
+function ItemDataCell.new(data)
+	return setmetatable(DataCell.new(ItemDataCell.Enums.DataCellType.Item, data), ItemDataCell)
 end
 
 
 -- Overrides default clear behavior
 -- @param nosignal <boolean>
-function InventoryDataCell:Clear(nosignal)
+function ItemDataCell:Clear(nosignal)
 	local emptyItem = self.Services.ItemService:GenerateEmptyItem()
 	for key, _ in pairs(self._Data) do
 		self:Set(key, nil, nosignal)
@@ -31,4 +30,4 @@ function InventoryDataCell:Clear(nosignal)
 end
 
 
-return InventoryDataCell
+return ItemDataCell
