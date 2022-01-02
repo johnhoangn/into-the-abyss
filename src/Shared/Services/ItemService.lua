@@ -1,7 +1,8 @@
 local ItemService = {Priority = 100}
 
 
-local ITEM_CLASSES = {"Junk", "Ware", "Weapon", "Consumable"}
+-- Ordering here does NOT matter
+local ITEM_CLASSES = {"Junk", "Ware", "Weapon", "Armor", "Consumable"}
 
 
 local HTTPService, AssetService
@@ -29,26 +30,44 @@ function ItemService:GenerateEmptyItem()
 end
 
 
--- Creates a weapon
+-- Creates an equipment
 -- @param baseID <string>
 -- @param lower <number> rng
 -- @param upper <number> rng
-function ItemService:GenerateWeapon(baseID, lower, upper)
+function ItemService:GenerateEquipment(baseID, lower, upper)
 	local asset = AssetService:GetAsset(baseID)
-	local weaponClass = asset.WeaponClass
-	assert(weaponClass ~= nil, "Not a weapon! " .. baseID)
+	local class = asset.WeaponClass or asset.ArmorClass
+	local lowRoll = lower or RandomInstance:NextInteger(asset.RollMin, asset.RollMax)
+	local highRoll = upper or RandomInstance:NextInteger(lowRoll, asset.RollMax)
+
+	assert(class ~= nil, "Not an equipment! " .. baseID)
 	return {
 		BaseID = baseID;
 		Amount = 1;
 		Info = {
 			UID = HTTPService:GenerateGUID();
-			Class = weaponClass;
-			Roll = {
-				lower or RandomInstance:NextInteger(asset.Roll.Min);
-				upper or RandomInstance:NextInteger(asset.Roll.Min);
-			};
+			Class = class;
+			Roll = {lowRoll, highRoll};
 		}
 	}
+end
+
+
+-- Creates a weapon
+-- @param baseID <string>
+-- @param lower <number> rng
+-- @param upper <number> rng
+function ItemService:GenerateWeapon(baseID, lower, upper)
+	return ItemService:GenerateEquipment(baseID, lower, upper)
+end
+
+
+-- Creates an armor
+-- @param baseID <string>
+-- @param lower <number> rng
+-- @param upper <number> rng
+function ItemService:GenerateArmor(baseID, lower, upper)
+	return ItemService:GenerateEquipment(baseID, lower, upper)
 end
 
 
@@ -58,27 +77,28 @@ end
 -- @param crafter <userid>
 -- @returns <itemDescriptor>
 function ItemService:GenerateConsumable(baseID, amount, crafter, crafterBonus)
-	local subClass = AssetService:GetAsset(baseID).ConsumableClass
-	assert(subClass ~= nil, "Not a consumable! " .. baseID)
+	local subclass = AssetService:GetAsset(baseID).ConsumableClass
+	assert(subclass ~= nil, "Not a consumable! " .. baseID)
 	return {
 		BaseID = baseID;
 		Amount = amount or 1;
 		Info = {
 			Crafter = crafter or nil;
 			Enhance = crafterBonus or 0;
-			Class = subClass;
+			Class = subclass;
 		}
 	}
 end
 
 
 -- Convenience method that figures out the item class by itself
--- @param baseID <string>
--- @param amount <number>
+-- @param assetClass <Enums.AssetClass> 
+-- @param assetID <string>
 -- @param ... item class / subclass specific args
 -- @returns <itemDescriptor>
-function ItemService:GenerateItem(baseID, amount, ...)
-	return self["Generate" .. AssetClassMap[baseID:sub(1,2)]](self, baseID, amount, ...)
+function ItemService:GenerateItem(assetClass, assetID, ...)
+	local classID = self.Modules.Hexadecimal.new(assetClass, 2)
+	return self["Generate" .. AssetClassMap[classID]](self, classID .. assetID, ...)
 end
 
 
