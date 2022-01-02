@@ -1,19 +1,19 @@
 local Templates = {}
 
 
-function Templates.Empty(service)
+function Templates.Empty()
 	local inv = {}
 
 	for _ = 1, 15 do
-		table.insert(inv, service:GenerateEmptyItem())
+		table.insert(inv, Templates.Services.ItemService:GenerateEmptyItem())
 	end
 
 	return inv
 end
 
 
-function Templates.GenerateDefaultInventory(template, service)
-	return Templates[template](service)
+function Templates.GenerateDefaultInventory(template)
+	return Templates[template]()
 end
 
 

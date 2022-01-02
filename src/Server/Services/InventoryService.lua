@@ -301,8 +301,7 @@ function InventoryService:Load(user)
 			"", 
 			"Inventory", 
 			self.Modules.InventoryTemplates.GenerateDefaultInventory(
-				DEFAULT_INVENTORY_OVERRIDE or "Empty",
-				ItemService
+				DEFAULT_INVENTORY_OVERRIDE or "Empty"
 			)
 		)
 	end
