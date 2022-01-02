@@ -130,15 +130,16 @@ local function LoadServices()
 		
 		Engine:Link(service)
 		service._ServiceName = serviceModule.Name
+		service.Priority = service.Priority or 500
 		Engine.Services[serviceModule.Name] = service
 		table.insert(ServiceInitPriorityQueue, service)
 	end
 
 	-- More positive number, earlier turn
 	table.sort(ServiceInitPriorityQueue, function(a, b)
-		return (a.Priority or 0) > (b.Priority or 0)
+		return (a.Priority) > (b.Priority)
 	end)
-	
+
 	return ServiceInitPriorityQueue
 end
 
@@ -175,7 +176,7 @@ end
 -- Loads and runs plugins
 local function DoPlugins()
 	for _, pluginModule in ipairs(Server.Plugins:GetChildren()) do
-        spawn(function()
+        Engine.Modules.ThreadUtil.Spawn(function()
 		    require(pluginModule)
         end)
 	end
