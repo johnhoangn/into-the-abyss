@@ -13,24 +13,25 @@ local JoinTasks, LeaveTasks
 
 function PlayerService:ExecuteJoinTasks(user)
 	for _name, joinTask in JoinTasks:KeyIterator() do
-		-- self:Print("Executing", name, "for", user)
 		if (joinTask.Processed[user]) then continue end
+		--self:Print("Executing", _name, "for", user)
 		joinTask.Processed[user] = true
-		self.Modules.ThreadUtil.Spawn(joinTask.Callback, user)
+		self.Modules.ThreadUtil.SpawnNow(joinTask.Callback, user)
 	end
 end
 
 
 function PlayerService:ExecuteLeaveTasks(user)
 	for _, leaveTask in LeaveTasks:KeyIterator() do
-		self.Modules.ThreadUtil.Spawn(leaveTask, user)
+		self.Modules.ThreadUtil.SpawnNow(leaveTask, user)
 	end
 end
 
 
-function PlayerService:AddJoinTask(callback, name)
+function PlayerService:AddJoinTask(callback, name) print("add", name)
 	assert(name, "nil name")
 	assert(callback, "nil callback")
+	assert(JoinTasks:Get(name) == nil, "redundant taskname " .. name)
 	JoinTasks:Add(name, {
 		Callback = callback;
 		Processed = {};
@@ -65,6 +66,10 @@ function PlayerService:EngineStart()
 	Players.PlayerRemoving:Connect(function(user)
 		PlayerService:ExecuteLeaveTasks(user)
 	end)
+
+	for _, user in ipairs(self.RBXServices.Players:GetPlayers()) do
+		self:ExecuteJoinTasks(user)
+	end
 end
 
 
