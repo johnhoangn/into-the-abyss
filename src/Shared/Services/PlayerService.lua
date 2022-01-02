@@ -28,7 +28,7 @@ function PlayerService:ExecuteLeaveTasks(user)
 end
 
 
-function PlayerService:AddJoinTask(callback, name) print("add", name)
+function PlayerService:AddJoinTask(callback, name)
 	assert(name, "nil name")
 	assert(callback, "nil callback")
 	assert(JoinTasks:Get(name) == nil, "redundant taskname " .. name)
