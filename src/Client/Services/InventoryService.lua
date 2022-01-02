@@ -196,7 +196,7 @@ end
 function InventoryService:EngineStart()
 	Inventory = self.Classes.IndexedMap.new()
 	for cellIndex, cellData in ipairs(DataService:GetCache().Inventory) do
-		Inventory:Add(cellIndex, self.Classes.InventoryDataCell.new(self.Enums.DataCellType.Item, cellData))
+		Inventory:Add(cellIndex, self.Classes.ItemDataCell.new(self.Enums.DataCellType.Item, cellData))
 	end
 	DataService.DataChanged:Connect(function(routeString, key, val)
 		local cellIndex = routeString:reverse():sub(1, routeString:find("."))
