@@ -29,7 +29,7 @@ local INVENTORY_PATH = "Inventory."
 local DEFAULT_INVENTORY_OVERRIDE = "Empty" -- Set this to a default inventory module config if desired
 
 
-local DataService, AssetService, Network, DropService
+local DataService, AssetService, Network, EquipService, DropService
 local Inventories
 local ActionMap
 
@@ -60,6 +60,103 @@ local function InventoryActionRequestHandler(user, _dt, action, ...)
 
 	return InventoryService[ActionMap[action]](InventoryService, user, ...)
 end
+
+
+------------------------------------------------------------------
+-- BEGIN INVENTORY ACTION DEFINITIONS
+------------------------------------------------------------------
+
+
+-- Trades the contents of one datacell with another
+-- @param user <Player>
+-- @param indexA <number>
+-- @param indexB <number>
+function InventoryService:Swap(user, indexA, indexB)
+	local inv = self:_GetInventory(user, 5)
+	inv:Get(indexA):Swap(inv:Get(indexB))
+end
+
+
+-- Divides a stack into two, with "amount" of the item
+--	going into a new stack
+-- !! ONLY APPLICABLE TO STACKABLE ITEM TYPES !!
+-- @param user <Player>
+-- @param indexA <number>
+-- @param indexB <number>
+-- @param amount <number>
+function InventoryService:Split(user, indexA, indexB, amount)
+	local inv = self:_GetInventory(user, 5)
+	local cellA = inv:Get(indexA)
+	local cellB = inv:Get(indexB)
+
+	cellB:Copy(cellA)
+	cellB:Set("Amount", amount)
+	cellA:Set("Amount", cellA:Get("Amount") - amount)
+end
+
+
+-- Drops an item out of the player's inventory
+-- @param user <Player>
+-- @param index <number>
+-- @param amount <number>
+-- @returns <number> dropped
+function InventoryService:Drop(user, index, amount)
+	local inv = self:_GetInventory(user, 5)
+	local itemDescriptor = inv:Get(index):GetData()
+	local dropped = 0
+
+	itemDescriptor.Amount = amount or 1
+	dropped = self:Take(user, itemDescriptor, false, false)
+	--DropService:Drop(user, itemDescriptor)
+
+	return dropped
+end
+
+
+-- Equips an item from the user's inventory
+-- @param user <Player>
+-- @param index <number>
+-- @param modifier <boolean>
+-- @returns <boolean> success
+function InventoryService:Equip(user, index, modifier)
+	local inv = self:_GetInventory(user, 5)
+	local itemDescriptor = inv:Get(index):GetData()
+	local necessaryEmpties = EquipService:EquipConditions(user, itemDescriptor, modifier)
+
+	if (#self:Empties(user, necessaryEmpties) < necessaryEmpties) then
+		return false
+	end
+
+	-- Item is now in equipment
+	inv:Get(index):Clear()
+
+	-- Return previously worn items to inventory
+	for _, itemData in ipairs(EquipService:Equip(user, itemDescriptor, modifier)) do
+		self:Give(user, itemData, true)
+	end
+
+	return true
+end
+
+
+-- Unequips an item from the user's equipment
+-- @param user <Player>
+-- @param slot <Enums.EquipSlot>
+-- @returns <boolean> success
+function InventoryService:Unequip(user, slot)
+	if (#self:Empties(user, 1) == 0) then
+		return false
+	end
+
+	self:Give(user, EquipService:Unequip(user, slot))
+
+	return true
+end
+
+
+------------------------------------------------------------------
+-- END INVENTORY ACTION DEFINITIONS
+------------------------------------------------------------------
 
 
 -- @param user <Player>
@@ -156,7 +253,7 @@ function InventoryService:Take(user, itemDescriptor, mustHaveAll, reverse)
 		for _, cellIndex in ipairs(indices) do
 			local cell = inv:Get(cellIndex)
 			local cellHas = cell:Get("Amount")
-			
+			print(cell)
 			if (cellHas <= toRemove) then
 				cell:Clear()
 				removed += cellHas
@@ -223,62 +320,15 @@ function InventoryService:Duplicates(user, itemDescriptor)
 end
 
 
--- Trades the contents of one datacell with another
--- @param user <Player>
--- @param indexA <number>
--- @param indexB <number>
-function InventoryService:Swap(user, indexA, indexB)
-	local inv = self:_GetInventory(user, 5)
-	inv:Get(indexA):Swap(inv:Get(indexB))
-end
-
-
--- Divides a stack into two, with "amount" of the item
---	going into a new stack
--- !! ONLY APPLICABLE TO STACKABLE ITEM TYPES !!
--- @param user <Player>
--- @param indexA <number>
--- @param indexB <number>
--- @param amount <number>
-function InventoryService:Split(user, indexA, indexB, amount)
-	local inv = self:_GetInventory(user, 5)
-	local cellA = inv:Get(indexA)
-	local cellB = inv:Get(indexB)
-
-	cellB:Copy(cellA)
-	cellB:Set("Amount", amount)
-	cellA:Set("Amount", cellA:Get("Amount") - amount)
-end
-
-
--- Drops an item out of the player's inventory
--- @param user <Player>
--- @param index <number>
--- @param amount <number>
--- @returns amount dropped
-function InventoryService:Drop(user, index, amount)
-	local inv = self:_GetInventory(user, 5)
-	local itemDescriptor = inv:Get(index):GetData()
-	local dropped = 0
-
-	itemDescriptor.Amount = amount or 1
-	dropped = self:Take(user, itemDescriptor, false, false)
-	--DropService:Drop(user, itemDescriptor)
-
-	return dropped
-end
-
-
 -- Informs the client whenever something changes in their inventory
 -- @param user <Player>
 -- @param inv <table>
 function InventoryService:BindAutoReplicators(user, inv)
 	-- IndexedMap does not extend DeepObject, manually add a maid
 	inv.Maid = self.Classes.Maid.new()
-	inv.Maid:GiveTask(UpdaterFactory(user))
 
 	for cellIndex, dataCell in inv:KeyIterator() do
-		dataCell.Changed:Connect(UpdaterFactory(user, cellIndex))
+		inv.Maid:GiveTask(dataCell.Changed:Connect(UpdaterFactory(user, cellIndex)))
 	end
 end
 
@@ -321,7 +371,6 @@ end
 function InventoryService:Unload(user)
 	local inv = Inventories:Get(user)
 	inv.Maid:Destroy()
-	inv:Destroy()
 	Inventories:Remove(user)
 end
 
@@ -379,6 +428,7 @@ function InventoryService:EngineInit()
 	DataService = self.Services.DataService
 	AssetService = self.Services.AssetService
 	Network = self.Services.Network
+	EquipService = self.Services.EquipService
 	-- DropService = self.Services.DropService
 
 	Inventories = self.Classes.IndexedMap.new()

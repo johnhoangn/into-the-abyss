@@ -18,7 +18,8 @@ return {
 	Junk = 7;
 	Ware = 8;
 	Weapon = 9;
-	Consumable = 10;
-	Material = 11;
-	Ingredient = 12;
+	Armor = 10;
+	Consumable = 11;
+	Material = 12;
+	Ingredient = 13;
 }
