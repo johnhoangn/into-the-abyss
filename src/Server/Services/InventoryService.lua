@@ -29,8 +29,7 @@ local INVENTORY_PATH = "Inventory."
 local DEFAULT_INVENTORY_OVERRIDE = "Empty" -- Set this to a default inventory module config if desired
 
 
-local ItemService, PlayerService, DataService, AssetService, Network, DropService
-local DataCellType
+local DataService, AssetService, Network, DropService
 local Inventories
 local ActionMap
 
@@ -89,7 +88,7 @@ end
 -- @param mustGiveAll <boolean> == false, all or nothing
 -- @returns <number> given
 function InventoryService:Give(user, itemDescriptor, mustGiveAll)
-	local inv = Inventories:Get(user)
+	local inv = self:_GetInventory(user, 5)
 	local slots, space = self:Duplicates(user, itemDescriptor)
 	local asset = AssetService:GetAsset(itemDescriptor.BaseID)
 	local stackSize = asset.StackSize or 1
@@ -143,7 +142,7 @@ end
 -- @param reverse <boolean> == false, remove from bottom right when true
 -- @returns <number> taken
 function InventoryService:Take(user, itemDescriptor, mustHaveAll, reverse)
-	local inv = Inventories:Get(user)
+	local inv = self:_GetInventory(user, 5)
 	local have, indices = self:Has(user, itemDescriptor)
 	local toRemove, removed = itemDescriptor.Amount, 0
 
@@ -180,7 +179,7 @@ end
 -- @param desired <number> == nil, if we have at minimum this many we can stop the search here
 -- @returns <table> array of indices corresponding to empty DataCells
 function InventoryService:Empties(user, desired)
-	local inv = Inventories:Get(user)
+	local inv = self:_GetInventory(user, 5)
 	local empties = {}
 
 	for i, cell in inv:KeyIterator() do
@@ -200,7 +199,7 @@ end
 -- @param itemDescriptor <table> { BaseID <string>; Info <table?>: { Crafter <userID?>; Enhance <number?> } }
 -- @returns number, <table> how much more we can carry, array of non-full duplicate BaseID cells
 function InventoryService:Duplicates(user, itemDescriptor)
-	local inv = Inventories:Get(user)
+	local inv = self:_GetInventory(user, 5)
 	local asset = AssetService:GetAsset(itemDescriptor.BaseID)
 	local stackSize = asset.StackSize or 1
 	local _, indices = self:Has(user, itemDescriptor)
@@ -229,7 +228,7 @@ end
 -- @param indexA <number>
 -- @param indexB <number>
 function InventoryService:Swap(user, indexA, indexB)
-	local inv = Inventories:Get(user)
+	local inv = self:_GetInventory(user, 5)
 	inv:Get(indexA):Swap(inv:Get(indexB))
 end
 
@@ -242,7 +241,7 @@ end
 -- @param indexB <number>
 -- @param amount <number>
 function InventoryService:Split(user, indexA, indexB, amount)
-	local inv = Inventories:Get(user)
+	local inv = self:_GetInventory(user, 5)
 	local cellA = inv:Get(indexA)
 	local cellB = inv:Get(indexB)
 
@@ -258,7 +257,7 @@ end
 -- @param amount <number>
 -- @returns amount dropped
 function InventoryService:Drop(user, index, amount)
-	local inv = Inventories:Get(user)
+	local inv = self:_GetInventory(user, 5)
 	local itemDescriptor = inv:Get(index):GetData()
 	local dropped = 0
 
@@ -286,7 +285,7 @@ end
 
 -- Reads the user's inventory data table and decodes it into a structure
 -- @param user <Player>
-function InventoryService:Load(user)
+function InventoryService:Load(user) 
 	local data = DataService:WaitData(user, 60)
 	local inv = self.Classes.IndexedMap.new()
 
@@ -308,10 +307,7 @@ function InventoryService:Load(user)
 	end
 
 	for cellIndex, datum in ipairs(data.Inventory) do
-		local dataCell = self.Classes.InventoryDataCell.new(
-			DataCellType.Item, 
-			datum
-		)
+		local dataCell = self.Classes.ItemDataCell.new(datum)
 		inv:Add(cellIndex, dataCell)
 	end
 
@@ -331,6 +327,21 @@ function InventoryService:Unload(user)
 end
 
 
+-- Yielding code to get a user's inventory
+-- @param user <Player>
+-- @param timeout <number> == 60
+function InventoryService:_GetInventory(user, timeout)
+	local inv = Inventories:Get(user)
+
+	if (not inv) then
+		self:WaitForInventory(user, timeout)
+		inv = Inventories:Get(user)
+	end
+
+	return inv
+end
+
+
 function InventoryService:Debug(user)
 	local dbg = {}
 	for _, dataCell in Inventories:Get(user):KeyIterator() do
@@ -340,30 +351,36 @@ function InventoryService:Debug(user)
 end
 
 
-function InventoryService:WaitForInventory(user)
-	if (Inventories:Get(user) == nil) then 
+function InventoryService:WaitForInventory(user, timeout)
+	if (Inventories:Get(user) == nil) then
 		local loaded = self.Classes.Signal.new()
-		local conn
-		conn = self.InventoryLoaded:Connect(function(_user)
-			if (_user == user) then
-				conn:Disconnect()
+
+		timeout = timeout or 60
+
+		self.Modules.ThreadUtil.Delay(timeout, function()
+			if (not Inventories:Get(user)) then
+				loaded:Fire()
+				self:Warn("Never retrieved inventory for", user, "within timeout of", timeout)
+			end
+		end)
+
+		local conn = self.InventoryLoaded:Connect(function(_user)
+			if (_user == user) then 
 				loaded:Fire()
 			end
 		end)
+
 		loaded:Wait()
+		conn:Disconnect()
 	end
 end
 
 
 function InventoryService:EngineInit()
-	ItemService = self.Services.ItemService -- Creation of items
-	PlayerService = self.Services.PlayerService
 	DataService = self.Services.DataService
 	AssetService = self.Services.AssetService
 	Network = self.Services.Network
 	-- DropService = self.Services.DropService
-
-	DataCellType = self.Enums.DataCellType
 
 	Inventories = self.Classes.IndexedMap.new()
 	self.InventoryLoaded = self.Classes.Signal.new()
@@ -376,9 +393,13 @@ end
 
 
 function InventoryService:EngineStart()
-	PlayerService:AddJoinTask(function(user)
+	local PlayerService = self.Services.PlayerService
+	PlayerService:AddJoinTask(function(user) 
 		self:Load(user)
 	end, "InventoryLoader")
+	PlayerService:AddLeaveTask(function(user)
+		self:Unload(user)
+	end, "InventoryUnloader")
 	Network:HandleRequestType(Network.NetRequestType.InventoryAction, InventoryActionRequestHandler)
 end
 
