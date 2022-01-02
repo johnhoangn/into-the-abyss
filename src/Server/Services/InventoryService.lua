@@ -147,6 +147,10 @@ function InventoryService:Take(user, itemDescriptor, mustHaveAll, reverse)
 	local have, indices = self:Has(user, itemDescriptor)
 	local toRemove, removed = itemDescriptor.Amount, 0
 
+	if (reverse) then
+		self.Modules.TableUtil.Reverse(indices)
+	end
+
 	if (not mustHaveAll or have >= toRemove) then
 		toRemove = math.min(have, toRemove)
 
