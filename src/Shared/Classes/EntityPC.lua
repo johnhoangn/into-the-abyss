@@ -7,6 +7,7 @@
 
 local Engine = _G.Deep
 local AssetService = Engine.Services.AssetService
+local Players = Engine.RBXServices.Players
 local WeldUtil = Engine.Modules.WeldUtil
 local EntityNoid = require(script.Parent.EntityNoid)
 local EntityPC = {}
@@ -18,11 +19,16 @@ setmetatable(EntityPC, EntityNoid)
 -- @param initialParams <table> == nil, convenience for EntityPC subclasses
 -- @returns <EntityPC>
 function EntityPC.new(base, initialParams)
-	local self = EntityNoid.new(base, initialParams)
+	if (not Engine.LocalPlayer) then
+		initialParams.Equipment = Engine.Modules.EquipmentTemplates.GenerateDefaultEquipment("Empty")
+	end
 
+	local self = setmetatable(EntityNoid.new(base, initialParams), EntityPC)
+
+	self.Player = Players:GetPlayerFromCharacter(base)
 	self.FaceAsset = AssetService:GetAsset(initialParams._FaceID or "060")
 
-	return setmetatable(self, EntityPC)
+	return self
 end
 
 

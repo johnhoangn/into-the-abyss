@@ -82,7 +82,15 @@ end
 -- @param entityParams <table>
 -- @returns <T extends Entity>
 function EntityService:CreateEntity(base, entityType, entityParams)
-    local newEntity = self.Classes[entityType].new(base, entityParams)
+    local newEntity
+	local s, e = pcall(function()
+		newEntity = self.Classes[entityType].new(base, entityParams)
+	end)
+
+	if (not s) then
+		self:Warn(e)
+		return nil
+	end
 
     CacheMutex:Lock()
     AllEntities:Add(base, newEntity)
@@ -108,6 +116,27 @@ function EntityService:CreateEntity(base, entityType, entityParams)
 	)
 
     return newEntity
+end
+
+
+function EntityService:NotifyEquipmentChange(base, slotChanged, itemData)
+	local entity = self:GetEntity(base)
+
+	if (not entity) then 
+		self:Warn("INVALID ENTITY BASE!", base)
+		return
+	end
+
+	entity.Equipment[slotChanged] = itemData
+	Network:FireAllClients(Network:Pack(
+		NetProtocol.Forget, 
+		NetRequestType.EntityEquipmentChanged, 
+		base, 
+		slotChanged, 
+		itemData
+	))
+
+	print(entity.Equipment)
 end
 
 
@@ -184,6 +213,11 @@ function EntityService:EngineStart()
 				entityData
 			)
 		)
+		
+		for k, v in ipairs(bases) do
+			bases[k] = tostring(v)
+		end
+		self:Log(1, "Streamed to", user, table.concat(bases, ", "))
 	end, "Initial Entity Streamer")
 
 	self.Services.PlayerService:AddJoinTask(function(user)
