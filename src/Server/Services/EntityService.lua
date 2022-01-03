@@ -83,60 +83,58 @@ end
 -- @returns <T extends Entity>
 function EntityService:CreateEntity(base, entityType, entityParams)
     local newEntity
-	local s, e = pcall(function()
-		newEntity = self.Classes[entityType].new(base, entityParams)
-	end)
+    local s, e = pcall(function()
+        newEntity = self.Classes[entityType].new(base, entityParams)
+    end)
 
-	if (not s) then
-		self:Warn(e)
-		return nil
-	end
+    if (not s) then
+        self:Warn(e)
+        return nil
+    end
 
     CacheMutex:Lock()
     AllEntities:Add(base, newEntity)
     CacheMutex:Unlock()
 
-	-- Auto cleanup
-	base.PrimaryPart.AncestryChanged:Connect(function()
-		if (not base.PrimaryPart or not base.PrimaryPart:IsDescendantOf(workspace)) then
-			self:DestroyEntity(base)
-		end
-	end)
-	
-	self:AttachAttributes(base)
+    -- Auto cleanup
+    base.PrimaryPart.AncestryChanged:Connect(function()
+        if (not base.PrimaryPart or not base.PrimaryPart:IsDescendantOf(workspace)) then
+            self:DestroyEntity(base)
+        end
+    end)
+    
+    self:AttachAttributes(base)
     self.EntityCreated:Fire(base)
 
-	Network:FireAllClients(
-		Network:Pack(
-			NetProtocol.Forget, 
-			NetRequestType.EntityStream, 
-			{base}, 
-			EntityService:PackEntityInfo({base})
-		)
-	)
+    Network:FireAllClients(
+        Network:Pack(
+            NetProtocol.Forget, 
+            NetRequestType.EntityStream, 
+            {base}, 
+            EntityService:PackEntityInfo({base})
+        )
+    )
 
     return newEntity
 end
 
 
 function EntityService:NotifyEquipmentChange(base, slotChanged, itemData)
-	local entity = self:GetEntity(base)
+    local entity = self:GetEntity(base)
 
-	if (not entity) then 
-		self:Warn("INVALID ENTITY BASE!", base)
-		return
-	end
+    if (not entity) then 
+        self:Warn("INVALID ENTITY BASE!", base)
+        return
+    end
 
-	entity.Equipment[slotChanged] = itemData
-	Network:FireAllClients(Network:Pack(
-		NetProtocol.Forget, 
-		NetRequestType.EntityEquipmentChanged, 
-		base, 
-		slotChanged, 
-		itemData
-	))
-
-	print(entity.Equipment)
+    entity.Equipment[slotChanged] = itemData
+    Network:FireAllClients(Network:Pack(
+        NetProtocol.Forget, 
+        NetRequestType.EntityEquipmentChanged, 
+        base, 
+        slotChanged, 
+        itemData
+    ))
 end
 
 
@@ -160,21 +158,21 @@ end
 -- (Much better than the old "EntityChanged" communication via Network)
 -- @param base <Model>
 function EntityService:AttachAttributes(base)
-	local entity = self:GetEntity(base)
+    local entity = self:GetEntity(base)
 
-	base:SetAttribute("Health", 50)
-	base:SetAttribute("MaxHealth", 50)
-	base:SetAttribute("Energy", 20)
-	base:SetAttribute("MaxEnergy", 20)
+    base:SetAttribute("Health", 50)
+    base:SetAttribute("MaxHealth", 50)
+    base:SetAttribute("Energy", 20)
+    base:SetAttribute("MaxEnergy", 20)
 end
 
 
 function EntityService:EngineInit()
-	Network = self.Services.Network
-	NetRequestType = self.Enums.NetRequestType
-	NetProtocol = self.Enums.NetProtocol
+    Network = self.Services.Network
+    NetRequestType = self.Enums.NetRequestType
+    NetProtocol = self.Enums.NetProtocol
     AssetService = self.Services.AssetService
-	CollectionService = self.RBXServices.CollectionService
+    CollectionService = self.RBXServices.CollectionService
 
     CacheMutex = self.Classes.Mutex.new()
     AllEntities = self.Classes.IndexedMap.new()
@@ -194,54 +192,54 @@ end
 
 
 function EntityService:EngineStart()
-	self.Services.PlayerService:AddJoinTask(function(user)
-		local bases = {}
-		local entityData
+    self.Services.PlayerService:AddJoinTask(function(user)
+        local bases = {}
+        local entityData
 
-		for base, _ in AllEntities:KeyIterator() do
-			table.insert(bases, base)
-		end
+        for base, _ in AllEntities:KeyIterator() do
+            table.insert(bases, base)
+        end
 
-		entityData = EntityService:PackEntityInfo(bases)
+        entityData = EntityService:PackEntityInfo(bases)
 
-		Network:FireClient(
-			user, 
-			Network:Pack(
-				NetProtocol.Forget, 
-				NetRequestType.EntityStream, 
-				bases, 
-				entityData
-			)
-		)
-		
-		for k, v in ipairs(bases) do
-			bases[k] = tostring(v)
-		end
-		self:Log(1, "Streamed to", user, table.concat(bases, ", "))
-	end, "Initial Entity Streamer")
+        Network:FireClient(
+            user, 
+            Network:Pack(
+                NetProtocol.Forget, 
+                NetRequestType.EntityStream, 
+                bases, 
+                entityData
+            )
+        )
+        
+        for k, v in ipairs(bases) do
+            bases[k] = tostring(v)
+        end
+        self:Log(1, "Streamed to", user, table.concat(bases, ", "))
+    end, "Initial Entity Streamer")
 
-	self.Services.PlayerService:AddJoinTask(function(user)
-		user.CharacterAdded:Connect(function()
-			if (user.Character.Parent ~= workspace) then
-				user.Character.AncestryChanged:Wait()
-			end
-			EntityService:CreateEntity(user.Character, "EntityPC", self.Modules.DefaultEntityNoid)
-		end)
+    self.Services.PlayerService:AddJoinTask(function(user)
+        user.CharacterAdded:Connect(function()
+            if (user.Character.Parent ~= workspace) then
+                user.Character.AncestryChanged:Wait()
+            end
+            EntityService:CreateEntity(user.Character, "EntityPC", self.Modules.DefaultEntityNoid)
+        end)
 
-		if (user.Character ~= nil) then
-			if (user.Character.Parent ~= workspace) then
-				user.Character.AncestryChanged:Wait()
-			end
-			EntityService:CreateEntity(user.Character, "EntityPC", self.Modules.DefaultEntityNoid)
-		end
-	end, "AutoUserEntityCreator")
+        if (user.Character ~= nil) then
+            if (user.Character.Parent ~= workspace) then
+                user.Character.AncestryChanged:Wait()
+            end
+            EntityService:CreateEntity(user.Character, "EntityPC", self.Modules.DefaultEntityNoid)
+        end
+    end, "AutoUserEntityCreator")
 
-	-- State updater
-	self.Services.MetronomeService:BindToFrequency(30, function()
-		for _, entity in AllEntities:KeyIterator() do
-			entity:UpdateState()
-		end
-	end)
+    -- State updater
+    self.Services.MetronomeService:BindToFrequency(30, function()
+        for _, entity in AllEntities:KeyIterator() do
+            entity:UpdateState()
+        end
+    end)
 end
 
 

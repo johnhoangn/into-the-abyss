@@ -61,20 +61,20 @@ local function RenderJob(dt)
         local function ProcessEntity(base, entity)
             -- Async due to potential asset downloads
             if (entity.MustRender or DistanceTo(entity) < RENDER_DISTANCE) then
-				local s, e = pcall(entity.Draw, entity, dt)
-				if (not s) then
-					warn("-------------------------------------------")
-					EntityService:Warn("DRAW ERROR: ", base, e)
-					local errModel = EntityService.Services.AssetService:GetAsset("00FFFF").Model:Clone()
-					errModel:PivotTo(base.PrimaryPart.CFrame)
-					errModel.PrimaryPart.Root.Part0 = base.PrimaryPart
-					errModel.Parent = base
-					warn(entity)
-					warn("NumEntities:", AllEntities.Size)
-					warn("-------------------------------------------")
-					VisibleEntities:Remove(base)
-				end
-				entity:UpdateState()
+                local s, e = pcall(entity.Draw, entity, dt)
+                if (not s) then
+                    warn("-------------------------------------------")
+                    EntityService:Warn("DRAW ERROR: ", base, e)
+                    local errModel = EntityService.Services.AssetService:GetAsset("00FFFF").Model:Clone()
+                    errModel:PivotTo(base.PrimaryPart.CFrame)
+                    errModel.PrimaryPart.Root.Part0 = base.PrimaryPart
+                    errModel.Parent = base
+                    warn(entity)
+                    warn("NumEntities:", AllEntities.Size)
+                    warn("-------------------------------------------")
+                    VisibleEntities:Remove(base)
+                end
+                entity:UpdateState()
             else
                 table.insert(RenderBuffer, base)
             end
@@ -114,19 +114,19 @@ end
 -- @param slotChanged <Enums.EquipSlot>
 -- @param itemData <ItemData> 
 local function HandleEntityEquipmentChange(_dt, base, slotChanged, itemData)
-	CacheMutex:Lock()
-	local entity = EntityService:GetEntity(base)
+    CacheMutex:Lock()
+    local entity = EntityService:GetEntity(base)
 
-	-- Haven't downloaded it yet or it was deleted before we could; ignore
-	if (not entity) then
-		EntityService:Print("No entity for:", base, "DROPPED", itemData)
-		return
-	end
+    -- Haven't downloaded it yet or it was deleted before we could; ignore
+    if (not entity) then
+        EntityService:Print("No entity for:", base, "DROPPED", itemData)
+        return
+    end
 
-	entity.Equipment[slotChanged] = itemData
+    entity.Equipment[slotChanged] = itemData
     CacheMutex:Unlock()
-	EntityService:Print("update:", entity, itemData)
-	EntityService:Log(1, "Update Equipment:", base)
+    EntityService:Print("update:", entity, itemData)
+    EntityService:Log(1, "Update Equipment:", base)
 end
 
 
@@ -148,9 +148,9 @@ function EntityService:ReceiveEntities(_dt, bases, entityInfo)
             true
         )
 
-		if (base == self.LocalPlayer.Character) then
-			entity:MarkMustRender(true)
-		end
+        if (base == self.LocalPlayer.Character) then
+            entity:MarkMustRender(true)
+        end
 
         CachedEntities:Add(base, entity)
     end
@@ -191,22 +191,22 @@ function EntityService:CreateEntity(base, entityType, entityParams, noLock)
     end
 
     AllEntities:Add(base, newEntity)
-	CachedEntities:Add(base, newEntity)
+    CachedEntities:Add(base, newEntity)
 
     if (not noLock) then
         CacheMutex:Unlock()
     end
 
-	-- Auto cleanup
-	base.PrimaryPart.AncestryChanged:Connect(function()
-		if (not base.PrimaryPart or not base.PrimaryPart:IsDescendantOf(workspace)) then
-			self:DestroyEntity(base)
-		end
-	end)
+    -- Auto cleanup
+    base.PrimaryPart.AncestryChanged:Connect(function()
+        if (not base.PrimaryPart or not base.PrimaryPart:IsDescendantOf(workspace)) then
+            self:DestroyEntity(base)
+        end
+    end)
 
-	self.EntityCreated:Fire(base)
-	self:Log(1, "Create", base)
-	
+    self.EntityCreated:Fire(base)
+    self:Log(1, "Create", base)
+    
     return newEntity
 end
 
@@ -214,7 +214,7 @@ end
 -- Removes an entity and its physical base
 -- @param base <Model>
 function EntityService:DestroyEntity(base)
-	CacheMutex:Lock()
+    CacheMutex:Lock()
     local entity = AllEntities:Get(base)
 
     if (entity ~= nil) then
@@ -225,7 +225,7 @@ function EntityService:DestroyEntity(base)
         self.EntityDestroyed:Fire(base)
         entity:Destroy()
     end
-	CacheMutex:Unlock()
+    CacheMutex:Unlock()
 end
 
 
@@ -237,9 +237,9 @@ function EntityService:PurgeCache()
 
     CacheMutex:Lock()
     for base, entity in AllEntities:KeyIterator() do
-		if (entity.PurgeExempt) then
-			continue
-		end
+        if (entity.PurgeExempt) then
+            continue
+        end
 
         self:CacheEntity(base)
         AllEntities:Remove(base)
@@ -318,9 +318,9 @@ function EntityService:EngineStart()
     self:Enable(true)
 
     Network:HandleRequestType(Network.NetRequestType.EntityStream, function(dt, bases, entityData)
-		EntityService:ReceiveEntities(dt, bases, entityData)
-	end)
-	Network:HandleRequestType(Network.NetRequestType.EntityEquipmentChanged, HandleEntityEquipmentChange)
+        EntityService:ReceiveEntities(dt, bases, entityData)
+    end)
+    Network:HandleRequestType(Network.NetRequestType.EntityEquipmentChanged, HandleEntityEquipmentChange)
 end
 
 
