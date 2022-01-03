@@ -79,11 +79,11 @@ function Engine:Warn(...)
 	warn(self._ServiceName .. "\n >>>", ...)
 end
 function Engine:Log(level, ...)
-	local logFile = Engine.Root:FindFirstChild("LogFile")
+	local logFile = Engine.EnvironmentFolder:FindFirstChild("LogFile")
 	if (not logFile) then
 		logFile = Instance.new("StringValue")
 		logFile.Name = "LogFile"
-		logFile.Parent = Engine.Root
+		logFile.Parent = Engine.EnvironmentFolder
 	end
 	if (level <= Engine.DebugLevel) then
 		local contents = {...}; for k, v in ipairs(contents) do contents[k] = tostring(v) end
