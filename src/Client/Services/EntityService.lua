@@ -23,6 +23,7 @@ local VisibleEntities
 local CachedEntities
 local CacheMutex -- Make sure nothing changes during iteration
 local RenderJobID, RenderJobSignal, RenderBuffer
+local Requesting
 
 
 -- Retrieves distance to entity
@@ -40,7 +41,8 @@ local function RenderJob(dt)
     RenderOrigin.X = Camera.CFrame.Position.X
     RenderOrigin.Z = Camera.CFrame.Position.Z -- Transforming Z axis to Y
 
-    CacheMutex:Lock()
+    if (not CacheMutex:TryLock()) then return end
+
     -- Check if there are any cached entities that are now in range
     table.clear(RenderBuffer)
     for base, entity in CachedEntities:KeyIterator() do
@@ -114,18 +116,15 @@ end
 -- @param slotChanged <Enums.EquipSlot>
 -- @param itemData <ItemData> 
 local function HandleEntityEquipmentChange(_dt, base, slotChanged, itemData)
-    CacheMutex:Lock()
-    local entity = EntityService:GetEntity(base)
+    local entity = EntityService:GetEntity(base, 30)
 
-    -- Haven't downloaded it yet or it was deleted before we could; ignore
+    -- We're probably not getting this entity, forget it!
     if (not entity) then
         EntityService:Print("No entity for:", base, "DROPPED", itemData)
         return
     end
 
     entity.Equipment[slotChanged] = itemData
-    CacheMutex:Unlock()
-    EntityService:Print("update:", entity, itemData)
     EntityService:Log(1, "Update Equipment:", base)
 end
 
@@ -134,7 +133,6 @@ end
 -- @param dt <float>
 -- @param entities <table>, {<Model> = {Type = <string>; InitialParams = <table>}}
 function EntityService:ReceiveEntities(_dt, bases, entityInfo)
-    CacheMutex:Lock()
     for i, base in pairs(bases) do
         if (EntityService:GetEntity(base) ~= nil) then
             continue
@@ -144,33 +142,49 @@ function EntityService:ReceiveEntities(_dt, bases, entityInfo)
         local entity = EntityService:CreateEntity(
             base,
             info.Type,
-            info.InitialParams,
-            true
+            info.InitialParams
         )
 
         if (base == self.LocalPlayer.Character) then
             entity:MarkMustRender(true)
         end
-
-        CachedEntities:Add(base, entity)
     end
-    CacheMutex:Unlock()
 end
 
 
 -- Retrieves an entity
 -- @param base <Model>
--- @param download <boolean>, download if we don't have it (and are allowed)
+-- @param downloadTimeout <number>, download if we don't have it (and are allowed)
 -- @returns <T extends Entity>
 -- @returns <boolean> if visible
-function EntityService:GetEntity(base, download)
+function EntityService:GetEntity(base, downloadTimeout)
     local entity = AllEntities:Get(base)
 
-    if (entity == nil and download) then
-        Network:RequestServer(
-            Network.NetRequestType.EntityRequest,
-            base
-        ):Wait()
+    if (entity == nil and downloadTimeout) then
+        if (Requesting[base] == nil) then
+            Requesting[base] = true
+            Network:RequestServer(
+                Network.NetRequestType.EntityRequest,
+                base
+            ):Wait()
+            Requesting[base] = nil
+        else
+            local waited = self.Classes.Signal.new()
+            local waiter = self.EntityCreated:Connect(function(_base)
+                if (_base == base) then
+                    waited:Fire()
+                end
+            end)
+
+            self.Modules.ThreadUtil.Delay(downloadTimeout, function()
+                waited:Fire()
+            end)
+
+            waited:Wait()
+            waiter:Disconnect()
+        end
+        
+        entity = AllEntities:Get(base)
     end
 
     return entity, entity ~= nil and entity.Skin ~= nil
@@ -306,6 +320,7 @@ function EntityService:EngineInit()
     RenderJobID = nil
     RenderJobSignal = self.Classes.Signal.new()
     RenderBuffer = {}
+    Requesting = {}
 
     self.EntityCreated = self.Classes.Signal.new()
     self.EntityDestroyed = self.Classes.Signal.new()
@@ -317,6 +332,7 @@ end
 function EntityService:EngineStart()
     self:Enable(true)
 
+    wait(5)
     Network:HandleRequestType(Network.NetRequestType.EntityStream, function(dt, bases, entityData)
         EntityService:ReceiveEntities(dt, bases, entityData)
     end)
