@@ -180,6 +180,16 @@ function EntityService:EngineInit()
     self.EntityCreated = self.Classes.Signal.new()
     self.EntityDestroyed = self.Classes.Signal.new()
 
+    Network:HandleRequestType(NetRequestType.EntityRequest, function(client, _dt, base)
+        local entity = self:GetEntity(base)
+        
+        if (entity ~= nil) then
+            return self:PackEntityInfo({base})[1]
+        else
+            return nil
+        end
+    end)
+
     -- Gather map entity placements and log them
     for _, model in ipairs(CollectionService:GetTagged("EntityInit")) do
         if (not model:IsDescendantOf(workspace)) then continue end
