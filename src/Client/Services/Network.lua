@@ -232,7 +232,7 @@ function Network:HandleRequestType(requestType, requestHandler)
 	end
 	
 	for _, i in ipairs(indexedToRemove) do
-		TableUtil.FastRemove(PendingRequests, i)
+		table.remove(PendingRequests, i)
 	end
 end
 
