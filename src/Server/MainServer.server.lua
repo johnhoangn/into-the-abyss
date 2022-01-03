@@ -307,11 +307,11 @@ local function PrepareWaitingClients()
 end
 
 
+Engine:Print("Ready!")
+
+
 PrepareWaitingClients()
 
 
 -- !! Cleanup !!
 Roblox:Destroy()
-
-
-Engine:Print("Ready!")
