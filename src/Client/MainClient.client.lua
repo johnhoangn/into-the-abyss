@@ -83,7 +83,7 @@ function Engine:Log(level, ...)
 	if (not logFile) then
 		logFile = Instance.new("StringValue")
 		logFile.Name = "LogFile"
-		logFile.Parent = Engine.Root
+		logFile.Parent = Engine.EnvironmentFolder
 	end
 	if (level <= Engine.DebugLevel) then
 		local contents = {...}; for k, v in ipairs(contents) do contents[k] = tostring(v) end
