@@ -26,6 +26,7 @@ function Mutex.new()
 	local self = DeepObject.new({
         _Locked = false;
         _Lock = bindable;
+        Blocked = 0;
     })
 
 	return setmetatable(self, Mutex)
@@ -34,6 +35,7 @@ end
 
 -- Attempts to acquire the lock, yields the thread if already locked
 function Mutex:Lock()
+    self.Blocked += 1
     -- All threads that got in must check if this is still locked,
     --  just in case the owner thread is sleeping
     while (self._Locked) do
@@ -41,6 +43,7 @@ function Mutex:Lock()
     end
 
     self._Locked = true
+    self.Blocked -= 1
 end
 
 
