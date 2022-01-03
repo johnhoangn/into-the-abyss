@@ -93,8 +93,15 @@ function Engine:Warn(...)
 	warn(self._ServiceName .. "\n >>>", ...)
 end
 function Engine:Log(level, ...)
+	local logFile = Engine.Root:FindFirstChild("LogFile")
+	if (not logFile) then
+		logFile = Instance.new("StringValue")
+		logFile.Name = "LogFile"
+		logFile.Parent = Engine.Root
+	end
 	if (level <= Engine.DebugLevel) then
-		self:Print("DEBUG", ...)
+		local contents = {...}; for k, v in ipairs(contents) do contents[k] = tostring(v) end
+		logFile.Value ..= "[LEVEL " .. level .. "] " .. self._ServiceName .. ": " .. table.concat(contents, " ") .. "\n"
 	end
 end
 
