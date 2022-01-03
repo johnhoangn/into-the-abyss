@@ -29,7 +29,7 @@ local INVENTORY_PATH = "Inventory."
 local DEFAULT_INVENTORY_OVERRIDE = "Empty" -- Set this to a default inventory module config if desired
 
 
-local DataService, AssetService, Network, EquipService, DropService
+local DataService, AssetService, Network, EquipService, EntityService, DropService
 local Inventories
 local ActionMap
 
@@ -119,6 +119,10 @@ end
 -- @param modifier <boolean>
 -- @returns <boolean> success
 function InventoryService:Equip(user, index, modifier)
+	if (not user.Character or not EntityService:GetEntity(user.Character)) then
+		return false
+	end
+
 	local inv = self:_GetInventory(user, 5)
 	local itemDescriptor = inv:Get(index):GetData()
 	local necessaryEmpties = EquipService:EquipConditions(user, itemDescriptor, modifier)
@@ -144,6 +148,10 @@ end
 -- @param slot <Enums.EquipSlot>
 -- @returns <boolean> success
 function InventoryService:Unequip(user, slot)
+	if (not user.Character or not EntityService:GetEntity(user.Character)) then
+		return false
+	end
+
 	if (#self:Empties(user, 1) == 0) then
 		return false
 	end
@@ -429,6 +437,7 @@ function InventoryService:EngineInit()
 	AssetService = self.Services.AssetService
 	Network = self.Services.Network
 	EquipService = self.Services.EquipService
+	EntityService = self.Services.EntityService
 	-- DropService = self.Services.DropService
 
 	Inventories = self.Classes.IndexedMap.new()

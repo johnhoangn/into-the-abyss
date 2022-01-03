@@ -16,7 +16,7 @@ local EQUIPMENT_PATH = "Equipment."
 local DEFAULT_EQUIPMENT_OVERRIDE = "Empty"
 
 
-local DataService, AssetService
+local DataService, AssetService, EntityService, ItemService
 local Equipments
 local EquipActionMap, WeaponClass, EquipSlot
 
@@ -48,7 +48,7 @@ function EquipService:EquipSingleSlotItem(user, itemData, modifier)
 	local equipSlot = asset.EquipSlot
 	local replacing = {}
 	local targetSlot
-	
+
 	-- Cover one-handed weapons
 	if (equipSlot == EquipSlot.PrimaryOrSecondary) then
 		equipSlot = modifier and EquipSlot.Secondary or EquipSlot.Primary
@@ -64,6 +64,9 @@ function EquipService:EquipSingleSlotItem(user, itemData, modifier)
 
 	-- Equip it
 	targetSlot:ReadData(itemData)
+
+	-- Inform of the equipment change
+	EntityService:NotifyEquipmentChange(user.Character, equipSlot, itemData)
 
 	return replacing
 end
@@ -90,11 +93,23 @@ function EquipService:EquipDualSlotItem(user, itemData)
 	if (primarySlot:Get("BaseID") ~= -1) then
 		-- Not clearing since the below :ReadData() has a builtin :Clear() call
 		table.insert(replacing, primarySlot:GetData())
+		-- Inform of the new primary weapon
+		EntityService:NotifyEquipmentChange(
+			user.Character, 
+			EquipSlot.Primary, 
+			itemData
+		)
 	end
 
 	if (secondarySlot:Get("BaseID") ~= -1) then
 		table.insert(replacing, secondarySlot:GetData())
 		secondarySlot:Clear()
+		-- Inform of the removal of a secondary weapon
+		EntityService:NotifyEquipmentChange(
+			user.Character, 
+			EquipSlot.Secondary, 
+			ItemService:GenerateEmptyItem()
+		)
 	end
 
 	-- Equip it
@@ -118,12 +133,15 @@ end
 -- @param user <Player>
 -- @returns <boolean>
 function EquipService:IsTwoHandedEquipped(user)
-	local equipment = Equipments:Get(user)
+	local equipment = self:_GetEquipment(user)
 	local baseID = equipment:Get(EquipSlot.Primary):Get("BaseID")
-	local asset = AssetService:GetAsset(baseID)
+	local asset = baseID ~= -1 and AssetService:GetAsset(baseID) or nil
 
-	return baseID == -1 and false
-		or asset.WeaponClass == WeaponClass.Greatsword
+	if (baseID == -1) then
+		return false
+	end
+
+	return asset.WeaponClass == WeaponClass.Greatsword
 		or asset.WeaponClass == WeaponClass.Bow
 end
 
@@ -139,7 +157,7 @@ end
 -- @returns <number> of empty inventory slots required to equip this item
 --	based on current equip status
 function EquipService:EquipConditions(user, itemData, modifier)
-	local equipment = Equipments:Get(user)
+	local equipment = self:_GetEquipment(user)
 	local assetClass = tonumber(itemData.BaseID:sub(1,2), 16)
 	local asset = AssetService:GetAsset(itemData.BaseID)
 	local equipSlot = asset.EquipSlot
@@ -210,7 +228,7 @@ end
 -- @param user <Player>
 -- @param itemDescriptor <ItemDescriptor>
 -- @returns <boolean>
-function EquipService:HasEquipped(user, itemDescriptor)
+function EquipService:HasEquipped(user, itemDescriptor) self:Debug(user)
 	local equipment = self:_GetEquipment(user)
 
 	for _equipSlot, dataCell in equipment:KeyIterator() do
@@ -332,8 +350,12 @@ end
 
 
 function EquipService:EngineInit()
+	local Players = self.RBXServices.Players
+
 	DataService = self.Services.DataService
 	AssetService = self.Services.AssetService
+	EntityService = self.Services.EntityService
+	ItemService = self.Services.ItemService
 
 	WeaponClass = self.Enums.WeaponClass
 	EquipSlot = self.Enums.EquipSlot
@@ -345,6 +367,18 @@ function EquipService:EngineInit()
 	for key, val in pairs(WeaponClass) do
 		EquipActionMap[self.Modules.Hexadecimal.new(val, 2)] = key
 	end
+
+	-- Initialize EntityPCs as they are created; since, they have no equipment on instantiation
+	EntityService.EntityCreated:Connect(function(base)
+		local user = Players:GetPlayerFromCharacter(base)
+
+		if (user ~= nil) then
+			local equipment = self:_GetEquipment(user)		
+			for slot, dataCell in equipment:KeyIterator() do
+				EntityService:NotifyEquipmentChange(user.Character, slot, dataCell:GetData())
+			end
+		end
+	end)
 end
 
 

@@ -23,9 +23,10 @@ return {
 
 	EntityStream = 1;
     EntityRequest = 2;
+	EntityEquipmentChanged = 3;
 
-	AnimationPackQuery = 3;
-	CoreAnimatorQuery = 4;
+	AnimationPackQuery = 4;
+	CoreAnimatorQuery = 5;
 
-	InventoryAction = 5;
+	InventoryAction = 6;
 }

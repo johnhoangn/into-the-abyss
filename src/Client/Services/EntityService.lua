@@ -107,6 +107,29 @@ local function RenderJob(dt)
 end
 
 
+-- Updates an entity's equipment
+-- I ~could~ force a draw update, but I'll leave that to the next render cycle for now
+-- @param _dt <number>
+-- @param base <Model>
+-- @param slotChanged <Enums.EquipSlot>
+-- @param itemData <ItemData> 
+local function HandleEntityEquipmentChange(_dt, base, slotChanged, itemData)
+	CacheMutex:Lock()
+	local entity = EntityService:GetEntity(base)
+
+	-- Haven't downloaded it yet or it was deleted before we could; ignore
+	if (not entity) then
+		EntityService:Print("No entity for:", base, "DROPPED", itemData)
+		return
+	end
+
+	entity.Equipment[slotChanged] = itemData
+    CacheMutex:Unlock()
+	EntityService:Print("update:", entity, itemData)
+	EntityService:Log(1, "Update Equipment:", base)
+end
+
+
 -- Reconstructs entities from provided information
 -- @param dt <float>
 -- @param entities <table>, {<Model> = {Type = <string>; InitialParams = <table>}}
@@ -150,7 +173,7 @@ function EntityService:GetEntity(base, download)
         ):Wait()
     end
 
-    return entity, entity ~= nil and entity.Model ~= nil
+    return entity, entity ~= nil and entity.Skin ~= nil
 end
 
 
@@ -182,7 +205,8 @@ function EntityService:CreateEntity(base, entityType, entityParams, noLock)
 	end)
 
 	self.EntityCreated:Fire(base)
-
+	self:Log(1, "Create", base)
+	
     return newEntity
 end
 
@@ -296,6 +320,7 @@ function EntityService:EngineStart()
     Network:HandleRequestType(Network.NetRequestType.EntityStream, function(dt, bases, entityData)
 		EntityService:ReceiveEntities(dt, bases, entityData)
 	end)
+	Network:HandleRequestType(Network.NetRequestType.EntityEquipmentChanged, HandleEntityEquipmentChange)
 end
 
 

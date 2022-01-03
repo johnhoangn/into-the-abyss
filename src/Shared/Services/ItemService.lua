@@ -1,4 +1,4 @@
-local ItemService = {Priority = 100}
+local ItemService = {Priority = 99}
 
 
 -- Ordering here does NOT matter
