@@ -98,6 +98,13 @@
 		evaera & buildthomas: https://devforum.roblox.com/t/coroutines-v-s-spawn-which-one-should-i-use/368966
 		Quenty: FastSpawn (AKA SpawnNow) method using BindableEvent
 
+
+
+        DGF ADDITIONS:
+
+        Thread.IntDelay(time, func, ... interupt signals)
+        Thread.IntWait(time, ... interupt signals)
+
 --]]
 
 
@@ -158,6 +165,45 @@ function Thread.DelayRepeat(intervalTime, func, ...)
 		end
 	end)
 	return hb
+end
+
+
+function Thread.IntDelay(waitTime, completeCallback, ...)
+    local maid = require(script.Parent.Maid).new()
+    local function cleanup()
+        maid:Destroy()
+    end
+
+    maid:GiveTask(Thread.DelayRepeat(waitTime, completeCallback))
+
+    for _, sig in ipairs({...}) do
+        maid:GiveTask(
+            sig:Connect(cleanup)
+        )
+    end
+end
+
+
+function Thread.IntWait(waitTime, ...)
+    local started = tick()
+    local maid = require(script.Parent.Maid).new()
+    local returnSignal = require(script.Parent.Signal).new()
+    local function cleanup()
+        maid:Destroy()
+        returnSignal:Fire(tick() - started, waitTime)
+    end
+
+    maid:GiveTask(Thread.DelayRepeat(waitTime, function()
+        cleanup()
+    end))
+
+    for _, sig in ipairs({...}) do
+        maid:GiveTask(
+            sig:Connect(cleanup)
+        )
+    end
+
+    return returnSignal:Wait()
 end
 
 
