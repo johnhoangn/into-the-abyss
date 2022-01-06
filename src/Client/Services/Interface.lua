@@ -25,7 +25,7 @@
 
 
 
-local Interface = {}
+local Interface = { Priority = 50 }
 local MetronomeService, UserInputService, PlayerGui
 local MouseInstance
 

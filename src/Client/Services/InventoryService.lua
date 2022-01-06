@@ -26,7 +26,7 @@ InventoryCell = {
 
 
 
-local InventoryService = { Priority = 90 }
+local InventoryService = { Priority = 150 }
 
 
 local DataService, Network, AssetService

@@ -11,7 +11,7 @@ local SQRT = math.sqrt
 local RENDER_DISTANCE = 100
 
 
-local EntityService = {Priority = 100}
+local EntityService = { Priority = 400 }
 local Network, MetronomeService
 local ThreadUtil
 

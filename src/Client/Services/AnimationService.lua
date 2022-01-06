@@ -13,7 +13,7 @@
 -- 	-> Animator loads and plays the track if entity is still in a state to at this point
 
 
-local AnimationService = {}
+local AnimationService = { Priority = 850 }
 
 local AssetService, Network
 local ManagedAnimators, CachedAnimations, CachedCoreAnimators

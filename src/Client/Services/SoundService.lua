@@ -20,7 +20,7 @@
 
 
 
-local SoundService = {}
+local SoundService = { Priority = 850 }
 local Network, AssetService, HttpService
 local SoundClass
 

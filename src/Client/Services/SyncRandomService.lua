@@ -6,10 +6,8 @@
 
 
 
-local SyncRandomService = {Priority = 450}
+local SyncRandomService = {Priority = 900}
 local Network
-
-local VALIDATION_INTERVAL = 50
 
 local ActiveRandoms
 

@@ -4,7 +4,7 @@
 
 
 
-local PlayerService = {Priority = 500}
+local PlayerService = { Priority = 900 }
 
 
 local Players
