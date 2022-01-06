@@ -117,9 +117,13 @@ local function LoadServices()
 	
 	-- More positive number, earlier turn
 	table.sort(ServiceInitPriorityQueue, function(a, b)
-		return (a.Priority or 0) > (b.Priority or 0)
+        if ((a.Priority or 0) == (b.Priority or 0)) then
+            return a._ServiceName < b._ServiceName
+        else
+		    return (a.Priority or 0) > (b.Priority or 0)
+        end
 	end)
-	
+
 	return ServiceInitPriorityQueue
 end
 
