@@ -110,7 +110,8 @@ local function LoadServices()
 		
 		Engine:Link(service)
 		service._ServiceName = serviceModule.Name
-		service.Priority = service.Priority or 500
+		service.Priority = service.CPriority or service.Priority or 500
+        service.CPriority = nil
 		Engine.Services[serviceModule.Name] = service
 		table.insert(ServiceInitPriorityQueue, service)
 	end
@@ -120,7 +121,7 @@ local function LoadServices()
         if ((a.Priority or 0) == (b.Priority or 0)) then
             return a._ServiceName < b._ServiceName
         else
-		    return (a.CPriority or a.Priority or 0) > (a.CPriority or b.Priority or 0)
+		    return (a.Priority or 0) > (b.Priority or 0)
         end
 	end)
 	
