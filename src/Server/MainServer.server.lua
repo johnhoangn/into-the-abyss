@@ -144,8 +144,18 @@ local function LoadServices()
 
 	-- More positive number, earlier turn
 	table.sort(ServiceInitPriorityQueue, function(a, b)
-		return (a.Priority) > (b.Priority)
+        if ((a.Priority or 0) == (b.Priority or 0)) then
+            return a._ServiceName < b._ServiceName
+        else
+		    return (a.Priority or 0) > (b.Priority or 0)
+        end
 	end)
+	
+    local serviceInitOrder = {}
+    for _, serviceModule in ipairs(ServiceInitPriorityQueue) do
+        table.insert(serviceInitOrder, ("%4d - %s"):format(serviceModule.Priority, serviceModule._ServiceName))
+    end
+    print("\n", table.concat(serviceInitOrder, "\n "))
 
 	return ServiceInitPriorityQueue
 end
