@@ -120,7 +120,7 @@ local function LoadServices()
         if ((a.Priority or 0) == (b.Priority or 0)) then
             return a._ServiceName < b._ServiceName
         else
-		    return (a.Priority or 0) > (b.Priority or 0)
+		    return (a.CPriority or a.Priority or 0) > (a.CPriority or b.Priority or 0)
         end
 	end)
 	
