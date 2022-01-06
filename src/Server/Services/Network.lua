@@ -29,7 +29,7 @@ local DEFAULT_RESPONSE_TIMEOUT = 300
 local RATE_LIMIT = 30
 
 
-local Network = {Priority = 500}
+local Network = { Priority = 1000 }
 local HttpService, Players, BigBrother
 local NetProtocol, NetRequestType, PacketStatus
 local Router

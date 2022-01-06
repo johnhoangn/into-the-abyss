@@ -22,7 +22,7 @@ InventoryCell = {
 
 
 
-local InventoryService = { Priority = 90 }
+local InventoryService = { Priority = 600 }
 
 
 local INVENTORY_PATH = "Inventory."

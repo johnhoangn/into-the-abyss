@@ -26,7 +26,7 @@
 local NIL_TOKEN = "\n"
 
 
-local DataService = { NIL_TOKEN = NIL_TOKEN; Priority = 1000 }
+local DataService = { NIL_TOKEN = NIL_TOKEN; Priority = 900 }
 
 
 local Network

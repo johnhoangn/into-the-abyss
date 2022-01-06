@@ -9,7 +9,7 @@
 --	details such as how many inventory slots will be required to do an action.
 
 
-local EquipService = { Priority = 91; }
+local EquipService = { Priority = 650; }
 
 
 local EQUIPMENT_PATH = "Equipment."

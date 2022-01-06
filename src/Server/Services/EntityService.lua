@@ -6,7 +6,7 @@
 
 
 
-local EntityService = {Priority = 100}
+local EntityService = { Priority = 700 }
 local AssetService, CollectionService, Network
 local NetProtocol, NetRequestType
 

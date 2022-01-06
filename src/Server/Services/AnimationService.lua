@@ -5,7 +5,7 @@
 -- Will extend to replicating animations across clients
 
 
-local AnimationService = {Priority = 109} -- inits AFTER assetservice
+local AnimationService = { Priority = 750 }
 local Network
 local AnimationPackLookup, CoreAnimatorLookup
 
