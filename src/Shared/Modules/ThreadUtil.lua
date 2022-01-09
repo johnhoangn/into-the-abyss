@@ -169,41 +169,46 @@ end
 
 
 function Thread.IntDelay(waitTime, completeCallback, ...)
-    local maid = require(script.Parent.Maid).new()
+    local conns = {}
+
     local function cleanup()
-        maid:Destroy()
+        for _, conn in ipairs(conns) do
+            conn:Disconnect()
+        end
     end
 
-    maid:GiveTask(Thread.DelayRepeat(waitTime, completeCallback))
+    table.insert(conns, Thread.DelayRepeat(waitTime, function()
+        completeCallback()
+    end))
 
     for _, sig in ipairs({...}) do
-        maid:GiveTask(
-            sig:Connect(cleanup)
-        )
+        table.insert(conns, sig:Connect(cleanup))
     end
 end
 
 
 function Thread.IntWait(waitTime, ...)
     local started = tick()
-    local maid = require(script.Parent.Maid).new()
-    local returnSignal = require(script.Parent.Signal).new()
+    local returnBindable = Instance.new("BindableEvent")
+    local conns = {}
+
     local function cleanup()
-        maid:Destroy()
-        returnSignal:Fire(tick() - started, waitTime)
+        returnBindable:Fire(tick() - started, waitTime)
+        returnBindable:Destroy()
+        for _, conn in ipairs(conns) do
+            conn:Disconnect()
+        end
     end
 
-    maid:GiveTask(Thread.DelayRepeat(waitTime, function()
+    table.insert(conns, Thread.DelayRepeat(waitTime, function()
         cleanup()
     end))
 
     for _, sig in ipairs({...}) do
-        maid:GiveTask(
-            sig:Connect(cleanup)
-        )
+        table.insert(conns, sig:Connect(cleanup))
     end
 
-    return returnSignal:Wait()
+    return returnBindable:Wait()
 end
 
 
