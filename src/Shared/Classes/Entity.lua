@@ -37,6 +37,12 @@ function Entity.new(base, initialParams)
 		end
 	end
 
+    for _, part in ipairs(base:GetDescendants()) do
+        if (part:IsA("BasePart")) then
+            part.CollisionGroupId = self.Enums.CollisionGroup.Entity
+        end
+    end
+
 	self.StateMachine = self.Classes.StateMachine.new("Idle")
 	self.StateChanged = self.StateMachine.StateChanged
 	self.Attributes = {}

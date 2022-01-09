@@ -4,12 +4,10 @@ Lootable.__index = Lootable
 setmetatable(Lootable, DeepObject)
 
 
-function Lootable.new(dropID, itemData, origin, position)
+function Lootable.new(dropID, itemData)
 	local self = setmetatable(DeepObject.new({
         DropID = dropID;
         Item = itemData;
-        Origin = origin;
-        Position = position;
     }), Lootable)
 	
     self:AddSignal("Looted")
@@ -20,9 +18,13 @@ function Lootable.new(dropID, itemData, origin, position)
 end
 
 
-function Lootable:Drop(decay)
-    self.Expires = tick() + decay;
+function Lootable:Drop(decay, origin, endPosition)
+    self.Dropped = tick()
+    self.Expires = self.Dropped + decay;
+    self.Origin = origin;
+    self.Position = endPosition;
     self.Modules.ThreadUtil.IntDelay(decay, function() self.Decayed:Fire() end, self.Looted)
+
     if (self.Owner ~= nil) then
         if (self.Modules.ThreadUtil.IntWait(self.UnlockOffset, self.Looted, self.Decayed) >= self.UnlockOffset) then
             self.Owner = nil
@@ -35,6 +37,18 @@ end
 function Lootable:SetOwner(user, timer)
     self.Owner = user.UserId
     self.UnlockOffset = timer
+end
+
+
+function Lootable:Encode()
+    return {
+        Dropped = self.Dropped;
+        Expires = self.Expires;
+        Origin = self.Origin;
+        Position = self.Position;
+        DropID = self.DropID;
+        Item = self.Item;
+    }
 end
 
 
