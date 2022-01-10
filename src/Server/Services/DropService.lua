@@ -1,13 +1,15 @@
 -- DropService server, drops items on the ground and handles lootable/looting
+-- Dropped items will be spawned on the client via EffectService, and a client-sided entity
+--  will be created to ensure that it is only visible when in render distance
 -- Dynamese(enduo)
 -- 1.5.2021
 
 
 
-local DropService = {}
+local DropService = { Priority = 300 }
 
 local DEFAULT_LOOT_DECAY_TIME = 120
-local BOUNCE_EFFICIENCY = 0.75
+local BOUNCE_VELOCITY = 30
 local OWNER_UNLOCK_TIME = 60
 local MAX_LOOT_DISTANCE = 10
 local RANDOM_SPEED_MIN = 15
@@ -22,9 +24,9 @@ local ABS = math.abs
 local MIN_WAIT = 1/30
 local GRAVITY = Vector3.new(0, 196.2, 0)
 local RAY_PARAMS = RaycastParams.new()
-local DEBUGGING = true
+local DEBUGGING = false
 
-local Network, AssetService, ItemService, InventoryService, EntityService, RayUtil
+local Network, AssetService, InventoryService, EntityService, RayUtil
 local HttpService, CollectionService
 local DropRandom, ItemsOnGround
 
@@ -74,6 +76,10 @@ local function Visualize(a, b)
 end
 
 
+-- @param origin <Vector3>
+-- @param speed <number>
+-- @param direction <Vector3>
+-- @returns <Vector3>
 function DropService:CalculateEndPosition(origin, speed, direction)
     local currentPosition = origin
     local velocity = direction * speed
@@ -94,7 +100,7 @@ function DropService:CalculateEndPosition(origin, speed, direction)
                 Visualize(currentPosition, result.Position)
                 local bounceDir = velocity.Unit - (2 * velocity.Unit:Dot(result.Normal) * result.Normal)
                 currentPosition = result.Position
-                velocity = bounceDir * ABS(velocity.Magnitude) * BOUNCE_EFFICIENCY
+                velocity = bounceDir * BOUNCE_VELOCITY
                 nextFramePosition = currentPosition + velocity * MIN_WAIT -- u/s * s -> u
             else
                 -- Valid landing position
@@ -110,12 +116,14 @@ function DropService:CalculateEndPosition(origin, speed, direction)
 
         velocity -= GRAVITY * MIN_WAIT -- u/s^2 * s -> u/s
     end
-print("max ranged")
+
     -- Max-range. Default position to origin
     return origin
 end
 
 
+-- @param itemData <ItemDescriptor>
+-- @returns <Lootable>
 function DropService:MakeDrop(itemData)
     return self.Classes.Lootable.new(
         HttpService:GenerateGUID(), 
@@ -124,22 +132,43 @@ function DropService:MakeDrop(itemData)
 end
 
 
+-- @param lootItem <Lootable>
+-- @param user <Player>
+-- @param timer <number>
 function DropService:SetOwner(lootItem, user, timer)
     lootItem:SetOwner(user, timer or OWNER_UNLOCK_TIME) 
 end
 
 
+-- @param lootItem <Lootable>
+-- @param origin <Vector3>
+-- @param decay <number>
+-- @param speed <number>
+-- @param direction <Vector3>
 function DropService:Drop(lootItem, origin, decay, speed, direction)
+    speed = speed or GenerateRandomSpeed()
+    direction = direction or GenerateRandomDirection()
+
     lootItem.Decayed:Connect(function()
         self:RemoveDrop(lootItem.DropID)
+    end)
+
+    lootItem.Unlocked:Connect(function()
+        Network:FireAllClients(
+            Network:Pack(
+                Network.NetProtocol.Forget, 
+                Network.NetRequestType.LootableUnlocked,
+                lootItem.DropID
+            )
+        )
     end)
 
     lootItem:Drop(decay or DEFAULT_LOOT_DECAY_TIME, 
         origin, 
         self:CalculateEndPosition(
-            origin, 
-            speed or GenerateRandomSpeed(), 
-            direction or GenerateRandomDirection()
+            origin,
+            speed,
+            direction
         )
     )
 
@@ -148,13 +177,15 @@ function DropService:Drop(lootItem, origin, decay, speed, direction)
         Network:Pack(
             Network.NetProtocol.Forget, 
             Network.NetRequestType.LootableDropped,
-            lootItem:Encode()
+            lootItem:Encode(),
+            speed,
+            direction
         )
     )
 end
 
 
-
+-- @param dropID <string>
 function DropService:RemoveDrop(dropID)
     ItemsOnGround:Remove(dropID):Destroy()
     Network:FireAllClients(
@@ -167,20 +198,53 @@ function DropService:RemoveDrop(dropID)
 end
 
 
+-- @param user <Player>
+-- @param dropID <string>
+function DropService:Take(user, dropID)
+    local lootItem = ItemsOnGround:Get(dropID)
+
+    if (not lootItem or lootItem.Locked) then
+        return
+    end
+
+    lootItem.Locked = true
+    local given = InventoryService:Give(user, lootItem.Item, false)
+
+    if (given == lootItem.Item.Amount) then
+        self:RemoveDrop(dropID)
+    else
+        lootItem.Item.Amount -= given
+        lootItem.Locked = false
+        Network:FireAllClients(
+            Network:Pack(
+                Network.NetProtocol.Forget, 
+                Network.NetRequestType.LootableUpdated,
+                dropID,
+                lootItem:Encode()
+            )
+        )
+    end
+end
+
+
+-- @param user <Player>
+-- @param dropID <string>
+-- @returns <boolean>
 function DropService:Lootable(user, dropID)
     local lootItem = ItemsOnGround:Get(dropID)
     local entity = EntityService:GetEntity(user.Character)
     return lootItem ~= nil
         and entity ~= nil
-        and (entity:GetPosition() - lootItem.Position).Magnitude <= MAX_LOOT_DISTANCE
-        and lootItem.UserId == user.UserId
+        and not lootItem.Locked
+        --and (entity:GetPosition() - lootItem.Position).Magnitude <= MAX_LOOT_DISTANCE
+        and (not lootItem.UserId or lootItem.UserId == user.UserId)
 end
 
 
 function DropService:EngineInit()
     Network = self.Services.Network
     AssetService = self.Services.AssetService
-    ItemService = self.Services.ItemService
+    EffectService = self.Services.EffectService
     InventoryService = self.Services.InventoryService
     EntityService = self.Services.EntityService
 

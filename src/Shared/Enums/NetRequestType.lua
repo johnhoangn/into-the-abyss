@@ -33,4 +33,6 @@ return {
     LootableTake = 7;
     LootableDropped = 8;
     LootableRemoved = 9;
+    LootableUpdated = 10;
+    LootableUnlocked = 11;
 }

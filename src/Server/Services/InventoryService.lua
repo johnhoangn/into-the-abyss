@@ -316,7 +316,7 @@ function InventoryService:Duplicates(user, itemDescriptor)
 		local info = cell:Get("Info")
 
 		if (info.Crafter == itemDescriptor.Crafter
-			and info.Enhance == itemDescriptor.Enhance
+			and info.Enhance == itemDescriptor.Info.Enhance
 			and cellHas < stackSize) then
 
 			spaceFor += (stackSize - cellHas)

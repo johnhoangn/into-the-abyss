@@ -88,9 +88,10 @@ function EffectService:Make(baseID, effectUID, dt, ...)
 	end
 	
 	-- Log this effect 
+    effect.UID = uid
 	ActiveEffects:Add(uid, effect)
 	
-	self.Modules.ThreadUtil.Spawn(effect.Play, effect, dt, ...)
+	self.Modules.ThreadUtil.SpawnNow(effect.Play, effect, dt, ...)
 	
 	return uid
 end

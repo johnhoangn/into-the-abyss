@@ -44,7 +44,7 @@ end
 function MetronomeService:Unbind(taskID)
     local task = Tasks[taskID]
 
-    assert(task ~= nil, "Invalid taskID " .. taskID)
+    assert(task ~= nil, "Invalid taskID " .. tostring(taskID))
 
     local frequency = task.Frequency
 

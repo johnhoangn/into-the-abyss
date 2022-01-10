@@ -18,6 +18,15 @@ function Lootable.new(dropID, itemData)
 end
 
 
+function Lootable.fromData(lootableData)
+    local lootItem = Lootable.new(lootableData.DropID, lootableData.Item)
+    for k, v in pairs(lootableData) do
+        lootItem[k] = v
+    end
+    return lootItem
+end
+
+
 function Lootable:Drop(decay, origin, endPosition)
     self.Dropped = tick()
     self.Expires = self.Dropped + decay;
