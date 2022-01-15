@@ -43,11 +43,16 @@ function Effect.new(effectAsset)
 end
 
 
+-- Synchronously preload this effect
+function Effect:Preload(dt, ...)
+    self.Module.Preload(self, dt, ...)
+end
+
+
 function Effect:Play(dt, ...)
     if (self.State ~= self.Enums.EffectState.Stopped) then
         self.State = self.Enums.EffectState.Playing
         if (not self.Module.Play(self, dt, ...)) then
-            print("stopping")
             self:Stop(...)
         end
     else

@@ -8,7 +8,7 @@
 
 local DropService = { Priority = 300 }
 
-local DEFAULT_LOOT_DECAY_TIME = 120
+local DEFAULT_LOOT_DECAY_TIME = 5
 local BOUNCE_VELOCITY = 30
 local OWNER_UNLOCK_TIME = 60
 local MAX_LOOT_DISTANCE = 10
@@ -20,7 +20,6 @@ local TAU = math.pi*2
 local COS = math.cos
 local SIN = math.sin
 local RAD = math.rad
-local ABS = math.abs
 local MIN_WAIT = 1/30
 local GRAVITY = Vector3.new(0, 196.2, 0)
 local RAY_PARAMS = RaycastParams.new()
@@ -179,7 +178,8 @@ function DropService:Drop(lootItem, origin, decay, speed, direction)
             Network.NetRequestType.LootableDropped,
             lootItem:Encode(),
             speed,
-            direction
+            direction,
+            DEFAULT_LOOT_DECAY_TIME
         )
     )
 end
@@ -236,7 +236,7 @@ function DropService:Lootable(user, dropID)
     return lootItem ~= nil
         and entity ~= nil
         and not lootItem.Locked
-        --and (entity:GetPosition() - lootItem.Position).Magnitude <= MAX_LOOT_DISTANCE
+        and (entity:GetPosition() - lootItem.Position).Magnitude <= MAX_LOOT_DISTANCE
         and (not lootItem.UserId or lootItem.UserId == user.UserId)
 end
 
@@ -244,7 +244,6 @@ end
 function DropService:EngineInit()
     Network = self.Services.Network
     AssetService = self.Services.AssetService
-    EffectService = self.Services.EffectService
     InventoryService = self.Services.InventoryService
     EntityService = self.Services.EntityService
 

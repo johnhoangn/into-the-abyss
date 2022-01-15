@@ -8,31 +8,28 @@
 
 local DropService = {}
 
-local DEFAULT_LOOT_DECAY_TIME = 120
 local BOUNCE_VELOCITY = 30
-local OWNER_UNLOCK_TIME = 60
-local MAX_LOOT_DISTANCE = 10
-local RANDOM_SPEED_MIN = 15
-local RANDOM_SPEED_MAX = 25
-local RANDOM_ANGLE_MIN = 45
-local RANDOM_ANGLE_MAX = 70
-local TAU = math.pi*2
-local COS = math.cos
-local SIN = math.sin
-local RAD = math.rad
-local ABS = math.abs
+local REMOVE_TRY_AGAIN = 5
 local MIN_WAIT = 1/30
 local GRAVITY = Vector3.new(0, 196.2, 0)
 local RAY_PARAMS = RaycastParams.new()
 
-local Network, AssetService, EffectService, InventoryService, EntityService, MetronomeService
+local Network, EffectService, InventoryService, EntityService, MetronomeService
 local HttpService, CollectionService
 local ItemsOnGround
 local RayUtil
 
 
-local function ReplicateDropped(dt, dropData, speed, direction)
+local function ReplicateDropped(dt, dropData, speed, direction, decayTime)
     local lootItem = DropService.Classes.Lootable.fromData(dropData)
+
+    DropService.Modules.ThreadUtil.IntDelay(
+        decayTime - dt, 
+        function() 
+            DropService:RemoveDrop(lootItem.DropID)
+        end,
+        lootItem.OnDestroyed
+    )
 
     ItemsOnGround:Add(lootItem.DropID, lootItem)
     DropService:Throw(lootItem, speed, direction)
@@ -48,8 +45,24 @@ local function ReplicateUpdated(dt, dropID, dropData)
 end
 
 
+-- Replicates removal of an item from the ground
+-- If the item doesn't exist yet, it could still be drawing
+--  as in the asset could've been downloading whilst we
+--  received the removal message. To protect against this
+--  case, we simply try again after REMOVE_TRY_AGAIN seconds
+-- @param dt <number>
+-- @param dropID <string>
 local function ReplicateRemoved(dt, dropID)
-    DropService:Remove(dropID)
+    if (ItemsOnGround:Get(dropID)) then
+        DropService:Remove(dropID)
+    else
+        DropService.Modules.ThreadUtil.Delay(
+            REMOVE_TRY_AGAIN, 
+            DropService.Remove, 
+            DropService, 
+            dropID
+        )
+    end
 end
 
 
@@ -74,9 +87,7 @@ end
 -- @param speed <number>
 -- @param direction <Vector3>
 function DropService:Throw(lootItem, speed, direction)
-    -- TODO: Put the drop asset in
     -- TODO: Create the entity
-    -- TODO: Throw the entity via effectservice
 
     local currentPosition = lootItem.Origin
     local velocity = direction * speed
@@ -108,7 +119,7 @@ function DropService:Throw(lootItem, speed, direction)
         else
             -- Normal arc progression
             EffectService:ChangeEffect(eUID, 0, currentPosition, nextFramePosition)
-            currentPosition = nextFramePosition
+            currentPosition = nextFramePosition + Vector3.new(0, 0.001, 0)
             nextFramePosition += velocity * dt -- u/s * s -> u
         end
 
@@ -125,22 +136,31 @@ function DropService:Throw(lootItem, speed, direction)
 end
 
 
+-- Attempts to loot the item
+-- @param dropID <string>
+-- @returns <any>
 function DropService:Take(dropID)
-    Network:RequestServer(Network.NetRequestType.LootableTak, dropID)
+    return Network:RequestServer(Network.NetRequestType.LootableTak, dropID):Wait()
 end
 
 
+-- Retrieves item information
+-- @param dropID <string>
+-- @returns 
 function DropService:GetInfo(dropID)
     return ItemsOnGround:Get(dropID)
 end
 
 
+-- Removes an item from the system
+-- @param dropID <string>
 function DropService:Remove(dropID)
     local lootItem = ItemsOnGround:Remove(dropID)
 
+    EffectService:StopEffect(lootItem.EffectUID, 0)
+
     if (lootItem ~= nil) then
         lootItem:Destroy()
-        -- TODO: Destroy attached members
     end
 end
 
