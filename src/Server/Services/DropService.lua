@@ -8,7 +8,7 @@
 
 local DropService = { Priority = 300 }
 
-local DEFAULT_LOOT_DECAY_TIME = 5
+local DEFAULT_LOOT_DECAY_TIME = 180
 local BOUNCE_VELOCITY = 30
 local OWNER_UNLOCK_TIME = 60
 local MAX_LOOT_DISTANCE = 10
@@ -25,7 +25,7 @@ local GRAVITY = Vector3.new(0, 196.2, 0)
 local RAY_PARAMS = RaycastParams.new()
 local DEBUGGING = false
 
-local Network, AssetService, InventoryService, EntityService, RayUtil
+local Network, InventoryService, EntityService, RayUtil
 local HttpService, CollectionService
 local DropRandom, ItemsOnGround
 
@@ -141,9 +141,9 @@ end
 
 -- @param lootItem <Lootable>
 -- @param origin <Vector3>
--- @param decay <number>
--- @param speed <number>
--- @param direction <Vector3>
+-- @param decay <number?>
+-- @param speed <number?>
+-- @param direction <Vector3?>
 function DropService:Drop(lootItem, origin, decay, speed, direction)
     speed = speed or GenerateRandomSpeed()
     direction = direction or GenerateRandomDirection()

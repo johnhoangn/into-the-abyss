@@ -14,8 +14,8 @@ local MIN_WAIT = 1/30
 local GRAVITY = Vector3.new(0, 196.2, 0)
 local RAY_PARAMS = RaycastParams.new()
 
-local Network, EffectService, InventoryService, EntityService, MetronomeService
-local HttpService, CollectionService
+local Network, EffectService, MetronomeService
+local CollectionService
 local ItemsOnGround
 local RayUtil
 
@@ -26,21 +26,26 @@ local function ReplicateDropped(dt, dropData, speed, direction, decayTime)
     DropService.Modules.ThreadUtil.IntDelay(
         decayTime - dt, 
         function() 
-            DropService:RemoveDrop(lootItem.DropID)
+            DropService:Remove(lootItem.DropID)
         end,
         lootItem.OnDestroyed
     )
 
-    ItemsOnGround:Add(lootItem.DropID, lootItem)
     DropService:Throw(lootItem, speed, direction)
+    ItemsOnGround:Add(lootItem.DropID, lootItem)
 end
 
 
 local function ReplicateUpdated(dt, dropID, dropData)
     local lootItem = ItemsOnGround:Get(dropID)
-    -- TODO: Update owner
+
     if (lootItem ~= nil) then
         lootItem.Item = dropData.Item
+
+        if (lootItem.Owner ~= dropData.Owner) then
+            lootItem.Owner = dropData.Owner
+            lootItem.Unlocked:Fire()
+        end
     end
 end
 
@@ -156,10 +161,8 @@ end
 -- @param dropID <string>
 function DropService:Remove(dropID)
     local lootItem = ItemsOnGround:Remove(dropID)
-
-    EffectService:StopEffect(lootItem.EffectUID, 0)
-
     if (lootItem ~= nil) then
+        EffectService:StopEffect(lootItem.EffectUID, 0)
         lootItem:Destroy()
     end
 end
