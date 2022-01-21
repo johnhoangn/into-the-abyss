@@ -103,11 +103,18 @@ end
 function InventoryService:Drop(user, index, amount)
 	local inv = self:_GetInventory(user, 5)
 	local itemDescriptor = inv:Get(index):GetData()
+    local entity = EntityService:GetEntity(user.Character)
 	local dropped = 0
 
-	itemDescriptor.Amount = amount or 1
-	dropped = self:Take(user, itemDescriptor, false, false)
-	--DropService:Drop(user, itemDescriptor)
+    if (entity) then
+        itemDescriptor.Amount = amount or 1
+        dropped = self:Take(user, itemDescriptor, false, false)
+        DropService:Drop(
+            DropService:MakeDrop(itemDescriptor),
+            entity:GetPosition(),
+            nil, nil, nil
+        )
+    end
 
 	return dropped
 end
@@ -316,7 +323,7 @@ function InventoryService:Duplicates(user, itemDescriptor)
 		local info = cell:Get("Info")
 
 		if (info.Crafter == itemDescriptor.Crafter
-			and info.Enhance == itemDescriptor.Enhance
+			and info.Enhance == itemDescriptor.Info.Enhance
 			and cellHas < stackSize) then
 
 			spaceFor += (stackSize - cellHas)
@@ -438,7 +445,7 @@ function InventoryService:EngineInit()
 	Network = self.Services.Network
 	EquipService = self.Services.EquipService
 	EntityService = self.Services.EntityService
-	-- DropService = self.Services.DropService
+	DropService = self.Services.DropService
 
 	Inventories = self.Classes.IndexedMap.new()
 	self.InventoryLoaded = self.Classes.Signal.new()

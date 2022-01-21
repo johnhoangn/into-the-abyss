@@ -29,4 +29,10 @@ return {
 	CoreAnimatorQuery = 5;
 
 	InventoryAction = 6;
+    -- LootableDrop is an inventory action as "Drop"
+    LootableTake = 7;
+    LootableDropped = 8;
+    LootableRemoved = 9;
+    LootableUpdated = 10;
+    LootableUnlocked = 11;
 }

@@ -28,11 +28,11 @@ function Effect.new(effectAsset)
     assert(typeof(effectModule.Reset) == "function", "Missing or Invalid :Reset() effect method: " .. baseID)
     assert(typeof(effectModule.Destroy) == "function", "Missing or Invalid :Destroy() effect method: " .. baseID)
 
-    local self = DeepObject.new()
-
-    self.BaseID = baseID
-    self.Model = effectAsset.Model:Clone()
-    self.Module = effectModule
+    local self = DeepObject.new({
+        BaseID = baseID;
+        Asset = effectAsset;
+        Module = effectModule;
+    })
 
     self:AddSignal("OnPlay")
     self:AddSignal("OnStop")
@@ -43,43 +43,50 @@ function Effect.new(effectAsset)
 end
 
 
-function Effect:Play(...)
+-- Synchronously preload this effect
+function Effect:Preload(dt, ...)
+    self.Module.Preload(self, dt, ...)
+end
+
+
+function Effect:Play(dt, ...)
     if (self.State ~= self.Enums.EffectState.Stopped) then
         self.State = self.Enums.EffectState.Playing
-        self.Module:Play(...)
-        self:Stop(...)
+        if (not self.Module.Play(self, dt, ...)) then
+            self:Stop(...)
+        end
     else
         warn("Attempt to play non-ready effect ", self)
     end
 end
 
 
-function Effect:Change(...)
+function Effect:Change(dt, ...)
     if (self.State ~= self.Enums.EffectState.Stopped) then
-        self.Module:Change(...)
+        self.Module.Change(self, dt, ...)
     else
         warn("Attempt to change stopped effect ", self)
     end
 end
 
 
-function Effect:Stop(...)
+function Effect:Stop(dt, ...)
     if (self.State == self.Enums.EffectState.Playing) then
         self.State = self.Enums.EffectState.Stopped
-        self.Module:Stop(...)
+        self.Module.Stop(self, dt, ...)
         self.OnStop:Fire()
     end
 end
 
 
 function Effect:Reset(...)
-    self.Module:Reset(...)
+    self.Module.Reset(self, ...)
     self.State = self.Enums.EffectState.Ready
 end
 
 
 function Effect:Destroy(...)
-    self.Module:Destroy(...)
+    self.Module.Destroy(self, ...)
     self.OnDestroy:Fire()
 
     self.OnPlay:Destroy()
