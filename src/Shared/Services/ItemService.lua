@@ -43,9 +43,9 @@ function ItemService:GenerateEquipment(baseID, lower, upper)
 	assert(class ~= nil, "Not an equipment! " .. baseID)
 	return {
 		BaseID = baseID;
+        UID = HTTPService:GenerateGUID();
 		Amount = 1;
 		Info = {
-			UID = HTTPService:GenerateGUID();
 			Class = class;
 			Roll = {lowRoll, highRoll};
 		}
