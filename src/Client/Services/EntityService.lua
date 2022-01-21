@@ -124,7 +124,7 @@ local function HandleEntityEquipmentChange(_dt, base, slotChanged, itemData)
         return
     end
 
-    entity.Equipment[slotChanged] = itemData
+    entity:ChangeEquipment(slotChanged, itemData)
     EntityService:Log(1, "Update Equipment:", base)
 end
 

@@ -119,7 +119,7 @@ function EntityService:CreateEntity(base, entityType, entityParams)
 end
 
 
-function EntityService:NotifyEquipmentChange(base, slotChanged, itemData)
+function EntityService:NotifyEquipmentChange(base, slotChanged, itemData) print(base, slotChanged, itemData)
     local entity = self:GetEntity(base)
 
     if (not entity) then 
