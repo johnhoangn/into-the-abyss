@@ -83,6 +83,7 @@ local function UpdateCamera(dt)
 		)
 
 	Camera.CFrame = Occlude(subjectPosition, desiredCFrame)
+    Camera.Focus = Camera.CFrame
 end
 
 
