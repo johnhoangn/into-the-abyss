@@ -12,10 +12,10 @@ setmetatable(EntityNPC, EntityNoid)
 
 -- Normal constructor
 -- @param base <Model>
--- @param initialParams <table> == nil, convenience for EntityNPC subclasses
+-- @param initParams <table> == nil, convenience for EntityNPC subclasses
 -- @returns <EntityNPC>
-function EntityNPC.new(base, initialParams)
-	local self = EntityNoid.new(base, initialParams)
+function EntityNPC.new(base, initParams)
+	local self = EntityNoid.new(base, initParams)
 
 	return setmetatable(self, EntityNPC)
 end

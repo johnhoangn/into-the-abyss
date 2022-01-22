@@ -31,10 +31,10 @@ local Transitions = {
 
 -- Normal constructor
 -- @param base <Model>
--- @param initialParams <table> == nil, convenience for EntityNoid subclasses
+-- @param initParams <table> == nil, convenience for EntityNoid subclasses
 -- @returns <EntityNoid>
-function EntityNoid.new(base, initialParams)
-	local self = setmetatable(Entity.new(base, initialParams), EntityNoid)
+function EntityNoid.new(base, initParams)
+	local self = setmetatable(Entity.new(base, initParams), EntityNoid)
 	local StateMachine = self.StateMachine
 	local States = StateMachine.States
 
@@ -109,7 +109,7 @@ if (game:GetService("Players").LocalPlayer == nil) then return EntityNoid end
 local new = EntityNoid.new
 function EntityNoid.new(...)
 	local self = new(...)
-	local asset = AssetService:GetAsset(self.InitialParams._SkinID)
+	local asset = AssetService:GetAsset(self.InitParams._SkinID)
 
 	self.SkinAsset = asset
 

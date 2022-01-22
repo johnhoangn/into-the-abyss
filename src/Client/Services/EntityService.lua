@@ -124,14 +124,14 @@ local function HandleEntityEquipmentChange(_dt, base, slotChanged, itemData)
         return
     end
 
-    entity.Equipment[slotChanged] = itemData
+    entity:ChangeEquipment(slotChanged, itemData)
     EntityService:Log(1, "Update Equipment:", base)
 end
 
 
 -- Reconstructs entities from provided information
 -- @param dt <float>
--- @param entities <table>, {<Model> = {Type = <string>; InitialParams = <table>}}
+-- @param entities <table>, {<Model> = {Type = <string>; InitParams = <table>}}
 function EntityService:ReceiveEntities(_dt, bases, entityInfo)
     for i, base in pairs(bases) do
         if (EntityService:GetEntity(base) ~= nil) then
@@ -142,7 +142,7 @@ function EntityService:ReceiveEntities(_dt, bases, entityInfo)
         local entity = EntityService:CreateEntity(
             base,
             info.Type,
-            info.InitialParams
+            info.InitParams
         )
 
         if (base == self.LocalPlayer.Character) then

@@ -52,6 +52,7 @@ end
 -- @param dt <number>
 -- @param action <Enums.InventoryAction>
 -- @param ... action specific arguments
+-- @returns <boolean> successful operation
 local function InventoryActionRequestHandler(user, _dt, action, ...)
 	if (not ActionMap[action]) then
 		InventoryService:Warn("Invalid Inventory Action!", user, action)

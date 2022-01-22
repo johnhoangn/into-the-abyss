@@ -220,6 +220,12 @@ function EquipService:Unequip(user, slot)
 	local itemData = equipment:Get(slot):GetData()
 
 	equipment:Get(slot):Clear()
+    EntityService:NotifyEquipmentChange(
+        user.Character, 
+        slot, 
+        equipment:Get(slot):GetData()
+    )
+
 	return itemData
 end
 
