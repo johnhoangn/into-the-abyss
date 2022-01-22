@@ -17,22 +17,52 @@ setmetatable(EntityPC, EntityNoid)
 
 -- Normal constructor
 -- @param base <Model>
--- @param initialParams <table> == nil, convenience for EntityPC subclasses
+-- @param initParams <table> == nil, convenience for EntityPC subclasses
 -- @returns <EntityPC>
-function EntityPC.new(base, initialParams)
+function EntityPC.new(base, initParams)
 	if (not Engine.LocalPlayer) then
-		initialParams.Equipment = Engine.Modules.EquipmentTemplates.GenerateDefaultEquipment("Empty")
+		initParams.Equipment = Engine.Modules.EquipmentTemplates.GenerateDefaultEquipment("Empty")
 	end
 
-	local self = setmetatable(EntityNoid.new(base, initialParams), EntityPC)
+	local self = setmetatable(EntityNoid.new(base, initParams), EntityPC)
 
 	self.Player = Players:GetPlayerFromCharacter(base)
-	self.FaceAsset = AssetService:GetAsset(initialParams._FaceID or "060")
+	self.FaceAsset = AssetService:GetAsset(initParams._FaceID or "060")
 
 	return self
 end
 
 
+-- Server variant to change equipment
+-- @param equipSlot <Enums.EquipSlot>
+-- @param itemData <ItemDescriptor>
+function EntityPC:ChangeEquipment(equipSlot, itemData)
+    if (self.Equipment[equipSlot].BaseID ~= itemData.BaseID 
+        or self.Equipment[equipSlot].UID ~= itemData.UID) then
+
+        self.InitParams.Equipment[equipSlot] = itemData
+        self.Equipment[equipSlot] = itemData
+    end
+end
+
+
+-- CLIENT METHODS
+if (game:GetService("Players").LocalPlayer == nil) then return EntityPC end
+
+
+-- Client constructor
+-- @param base <Model>
+-- @param initParams <table> == nil, convenience for EntityPC subclasses
+-- @returns <EntityPC>
+local sharedConstructor = EntityPC.new
+function EntityPC.new(base, initParams)
+	local self = sharedConstructor(base, initParams)
+    self.InitParams = nil
+	return self
+end
+
+
+-- Client variant to change equipment
 -- @param equipSlot <Enums.EquipSlot>
 -- @param itemData <ItemDescriptor>
 function EntityPC:ChangeEquipment(equipSlot, itemData)
@@ -43,10 +73,6 @@ function EntityPC:ChangeEquipment(equipSlot, itemData)
         self:DrawEquipmentSlot(equipSlot)
     end
 end
-
-
--- CLIENT METHODS
-if (game:GetService("Players").LocalPlayer == nil) then return EntityPC end
 
 
 -- @param groupName <string> name of the submodel
@@ -149,10 +175,11 @@ local superHide = EntityPC.Hide
 function EntityPC:Hide()
 	superHide(self)	
 
-    -- Unnecessary to :Destroy() Face and EquipmentModels 
-    --  as they're parented to Base; which, is :Destroyed()'d above
+    self.Face:Destroy()
     self.Face = nil
     self._FaceParts = nil
+
+    for _, model in ipairs(self.EquipmentModels) do model:Destroy() end
     self.EquipmentModels = nil
     self.EquipmentModelsParts = nil
 end

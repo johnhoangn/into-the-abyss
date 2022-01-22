@@ -45,7 +45,7 @@ function EntityService:PackEntityInfo(bases)
         local entity =  EntityService:GetEntity(base)
         entities[i] = {
             Type = entity.ClassName;
-            InitialParams = entity.InitialParams;
+            InitParams = entity.InitParams;
         }
     end
     CacheMutex:Unlock()
@@ -119,7 +119,7 @@ function EntityService:CreateEntity(base, entityType, entityParams)
 end
 
 
-function EntityService:NotifyEquipmentChange(base, slotChanged, itemData) print(base, slotChanged, itemData)
+function EntityService:NotifyEquipmentChange(base, equipSlot, itemData)
     local entity = self:GetEntity(base)
 
     if (not entity) then 
@@ -127,12 +127,12 @@ function EntityService:NotifyEquipmentChange(base, slotChanged, itemData) print(
         return
     end
 
-    entity.Equipment[slotChanged] = itemData
+    entity:ChangeEquipment(equipSlot, itemData)
     Network:FireAllClients(Network:Pack(
         NetProtocol.Forget, 
         NetRequestType.EntityEquipmentChanged, 
         base, 
-        slotChanged, 
+        equipSlot, 
         itemData
     ))
 end
@@ -158,8 +158,6 @@ end
 -- (Much better than the old "EntityChanged" communication via Network)
 -- @param base <Model>
 function EntityService:AttachAttributes(base)
-    local entity = self:GetEntity(base)
-
     base:SetAttribute("Health", 50)
     base:SetAttribute("MaxHealth", 50)
     base:SetAttribute("Energy", 20)

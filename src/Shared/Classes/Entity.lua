@@ -15,9 +15,9 @@ local HttpService, AssetService
 
 -- Normal constructor
 -- @param base <Model>
--- @param initialParams <table> == nil, convenience for entity subclasses
+-- @param initParams <table> == nil, convenience for entity subclasses
 -- @returns <Entity>
-function Entity.new(base, initialParams)
+function Entity.new(base, initParams)
 	HttpService = HttpService or Entity.RBXServices.HttpService
 
 	assert(base:IsA("Model"), "Base must be a model " .. base:GetFullName())
@@ -26,13 +26,13 @@ function Entity.new(base, initialParams)
 	local self = setmetatable(DeepObject.new({
 		_LastPosition = Vector3.new();
 		
-		InitialParams = initialParams;
+		InitParams = initParams;
 		Base = base;
-		UID = initialParams.UID or HttpService:GenerateGUID();
+		UID = initParams.UID or HttpService:GenerateGUID();
 	}), Entity)
 
-	if (initialParams ~= nil) then
-		for k, v in pairs(initialParams) do
+	if (initParams ~= nil) then
+		for k, v in pairs(initParams) do
 			self[k] = v
 		end
 	end
@@ -151,7 +151,7 @@ function Entity.new(...)
 	AssetService = AssetService or Entity.Services.AssetService
 
 	local self = new(...)
-	local asset = AssetService:GetAsset(self.InitialParams._BaseID)
+	local asset = AssetService:GetAsset(self.InitParams._BaseID)
 
 	self._Asset = asset
 
