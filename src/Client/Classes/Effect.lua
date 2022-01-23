@@ -22,6 +22,7 @@ function Effect.new(effectAsset)
     local baseID = effectAsset.Folder.Parent.Name .. effectAsset.Folder.Name
 
     -- I *really* don't trust myself to remember all of these methods when creating FX
+    assert(typeof(effectModule.Preload) == "function", "Missing or Invalid :Preload() effect method: " .. baseID)
     assert(typeof(effectModule.Play) == "function", "Missing or Invalid :Play() effect method: " .. baseID)
     assert(typeof(effectModule.Change) == "function", "Missing or Invalid :Change() effect method: " .. baseID)
     assert(typeof(effectModule.Stop) == "function", "Missing or Invalid :Stop() effect method: " .. baseID)
