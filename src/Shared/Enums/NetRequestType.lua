@@ -35,4 +35,7 @@ return {
     LootableRemoved = 9;
     LootableUpdated = 10;
     LootableUnlocked = 11;
+
+    EntityHurt = 12;
+    MeleeHitRequest = 13;
 }

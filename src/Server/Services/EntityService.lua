@@ -119,6 +119,11 @@ function EntityService:CreateEntity(base, entityType, entityParams)
 end
 
 
+-- Used by otherservices to inform us and all clients about
+--  equipment changes
+-- @param base <Model>
+-- @param equipSlot <Enums.EquipSlot>
+-- @param itemData <itemDescriptor>
 function EntityService:NotifyEquipmentChange(base, equipSlot, itemData)
     local entity = self:GetEntity(base)
 
@@ -156,12 +161,13 @@ end
 
 -- Applies attributes for auto-replication convenience
 -- (Much better than the old "EntityChanged" communication via Network)
+-- Unfortunately, will still need "EntityStatusApplied" and "EntityStatusRemoved"
 -- @param base <Model>
 function EntityService:AttachAttributes(base)
-    base:SetAttribute("Health", 50)
-    base:SetAttribute("MaxHealth", 50)
-    base:SetAttribute("Energy", 20)
+    base:SetAttribute("MaxHealth", 5000)
+    base:SetAttribute("Health", 5000)
     base:SetAttribute("MaxEnergy", 20)
+    base:SetAttribute("Energy", 20)
 end
 
 

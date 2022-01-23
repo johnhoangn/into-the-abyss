@@ -106,7 +106,8 @@ end
 -- Health/Energy modifiers
 -- @param resource <string>
 -- @param delta <number>
-function Entity:ChangeResourceVal(resource, delta)
+-- @param source <string>
+function Entity:ChangeResourceVal(resource, delta, source)
 	local current = self.Base:GetAttribute(resource)
 	local max = self.Base:GetAttribute("Max" .. resource)
 	local new = math.clamp(current + delta, 0, max)
@@ -116,19 +117,19 @@ function Entity:ChangeResourceVal(resource, delta)
 	end
 
 	self.Base:SetAttribute(resource, new)
-	self[resource .. "Changed"]:Fire(current, new)
+	self[resource .. "Changed"]:Fire(current, new, source)
 end
-function Entity:Hurt(amt)
-	self:ChangeResourceVal("Health", -amt)
+function Entity:Hurt(amt, source)
+	self:ChangeResourceVal("Health", -amt, source)
 end
-function Entity:Heal(amt)
-	self:ChangeResourceVal("Health", amt)
+function Entity:Heal(amt, source)
+	self:ChangeResourceVal("Health", amt, source)
 end
-function Entity:Drain(amt)
-	self:ChangeResourceVal("Energy", -amt)
+function Entity:Drain(amt, source)
+	self:ChangeResourceVal("Energy", -amt, source)
 end
-function Entity:Recover(amt)
-	self:ChangeResourceVal("Energy", amt)
+function Entity:Recover(amt, source)
+	self:ChangeResourceVal("Energy", amt, source)
 end
 
 
@@ -138,6 +139,73 @@ function Entity:StartAttributeTracker()
 		self.Attributes[attr] = self.Base:GetAttribute(attr)
 		self:UpdateState()
 	end))
+end
+
+
+
+
+-- Retrieves attack values
+-- @returns <table>
+function Entity:GetOffensiveValues()
+    return {
+        Melee = 0;
+        Ranged = 0;
+        Arcane = 0;
+    }
+end
+
+
+-- Retrieves offensive multipliers
+-- @returns <table>
+function Entity:GetOffensiveMultipliers()
+    return {
+        Melee = 1.25;
+        Ranged = 1;
+        Arcane = 1;
+    }
+end
+
+
+-- Calculates critical rate
+-- @returns <number> [0, 0.75]
+function Entity:GetCriticalRate()
+    return 1
+end
+
+
+-- Calculates critical multiplier
+-- @returns <number> [1.25, 3]
+function Entity:GetCriticalMultiplier()
+    return 1.25
+end
+
+
+-- Calculates defense values
+-- @returns <table>
+function Entity:GetDefensiveValues()
+    return {
+        Melee = 2;
+        Ranged = 2;
+        Arcane = 2;
+    }
+end
+
+
+-- Retrieves defensive multipliers
+-- @returns <table>
+function Entity:GetDefensiveMultipliers()
+    return {
+        Melee = 1;
+        Ranged = 1;
+        Arcane = 1;
+    }
+end
+
+
+-- Calculates defense against critical damage
+-- @returns <number> [0, 0.75]
+function Entity:GetCriticalDefense()
+    return 0
 end
 
 
