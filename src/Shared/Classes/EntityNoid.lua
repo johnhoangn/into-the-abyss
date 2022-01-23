@@ -75,6 +75,13 @@ function EntityNoid.new(base, initParams)
 		--print(StateMachine:GetStateNameFromEnum(from), StateMachine:GetStateNameFromEnum(to), name, ...)
 	end)
 
+    if (self.LocalPlayer == nil) then
+        self.Randoms = {
+            Critical = Random.new();
+            Attack = Random.new();
+        }
+    end
+
 	return self
 end
 

@@ -30,44 +30,82 @@ function ItemService:GenerateEmptyItem()
 end
 
 
--- Creates an equipment
+-- Creates a weapon
 -- @param baseID <string>
--- @param lower <number> rng
--- @param upper <number> rng
-function ItemService:GenerateEquipment(baseID, lower, upper)
+-- @param lowerM <number> rng
+-- @param upperM <number> rng
+-- @param lowerR <number> rng
+-- @param upperR <number> rng
+-- @param lowerA <number> rng
+-- @param upperA <number> rng
+-- @returns <ItemDescriptor>
+function ItemService:GenerateWeapon(baseID, lowerM, upperM, lowerR, upperR, lowerA, upperA)
 	local asset = AssetService:GetAsset(baseID)
-	local class = asset.WeaponClass or asset.ArmorClass
-	local lowRoll = lower or RandomInstance:NextInteger(asset.RollMin, asset.RollMax)
-	local highRoll = upper or RandomInstance:NextInteger(lowRoll, asset.RollMax)
+	local class = asset.WeaponClass
 
-	assert(class ~= nil, "Not an equipment! " .. baseID)
+    if (class == self.Enums.WeaponClass.Shield) then
+        -- interpreted as parameters for :GenerateArmor()
+        return self:GenerateArmor(baseID, lowerM, upperM, lowerR)
+    end
+
+	assert(class ~= nil, "Not a weapon! " .. baseID)
+
+    local attacks = asset.Attack
+
+    local lowerMelee = lowerM or RandomInstance:NextInteger(attacks.Melee.Min, attacks.Melee.Max)
+    local upperMelee = upperM or RandomInstance:NextInteger(lowerMelee, attacks.Melee.Max)
+
+    local lowerRanged = lowerR or RandomInstance:NextInteger(attacks.Ranged.Min, attacks.Ranged.Max)
+    local upperRanged = upperR or RandomInstance:NextInteger(lowerRanged, attacks.Ranged.Max)
+
+    local lowerArcane = lowerA or RandomInstance:NextInteger(attacks.Arcane.Min, attacks.Arcane.Max)
+    local upperArcane = upperA or RandomInstance:NextInteger(lowerArcane, attacks.Arcane.Max)
+
+    local itemData = {
+		BaseID = baseID;
+        UID = HTTPService:GenerateGUID();
+		Amount = 1;
+		Info = {
+			Class = class;
+			Rolls = {
+                Melee = { lowerMelee, upperMelee };
+                Ranged = { lowerRanged, upperRanged };
+                Arcane = { lowerArcane, upperArcane };
+            };
+		}
+	}
+
+	return itemData
+end
+
+
+-- Creates an armor
+-- @param baseID <string>
+-- @param melee <number> rng
+-- @param ranged <number> rng
+-- @param arcane <number> rng
+-- @returns <ItemDescriptor>
+function ItemService:GenerateArmor(baseID, melee, ranged, arcane)
+	local asset = AssetService:GetAsset(baseID)
+	local class = asset.ArmorClass or asset.WeaponClass -- Covers shields
+
+	assert(class ~= nil, "Not an armor! " .. baseID)
 	return {
 		BaseID = baseID;
         UID = HTTPService:GenerateGUID();
 		Amount = 1;
 		Info = {
 			Class = class;
-			Roll = {lowRoll, highRoll};
+			Rolls = {
+                Melee = melee or RandomInstance:NextInteger(
+                    asset.Defense.Melee.Min, asset.Defense.Melee.Max);
+                Ranged = ranged or RandomInstance:NextInteger(
+                    asset.Defense.Ranged.Min, asset.Defense.Ranged.Max);
+                Arcane = arcane or RandomInstance:NextInteger(
+                    asset.Defense.Arcane.Min, asset.Defense.Arcane.Max);
+            }
 		}
 	}
-end
-
-
--- Creates a weapon
--- @param baseID <string>
--- @param lower <number> rng
--- @param upper <number> rng
-function ItemService:GenerateWeapon(baseID, lower, upper)
-	return ItemService:GenerateEquipment(baseID, lower, upper)
-end
-
-
--- Creates an armor
--- @param baseID <string>
--- @param lower <number> rng
--- @param upper <number> rng
-function ItemService:GenerateArmor(baseID, lower, upper)
-	return ItemService:GenerateEquipment(baseID, lower, upper)
 end
 
 
