@@ -1,3 +1,11 @@
+-- ItemService shared
+-- Generates items on the fly
+--
+-- Dynamese (Enduo)
+-- ??.??.2022
+
+
+
 local ItemService = { Priority = 700; CPriority = 200 }
 
 

@@ -1,3 +1,11 @@
+-- Damage package class
+-- Contains offensive information, can be used to inflict damage to multiple victims
+--
+-- Dynamese (Enduo)
+-- 01.22.2022
+
+
+
 local DamagePackage = {}
 DamagePackage.__index = DamagePackage
 

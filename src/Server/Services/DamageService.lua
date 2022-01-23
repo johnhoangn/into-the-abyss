@@ -1,3 +1,8 @@
+-- DamageService server
+-- Responsible for calculating damage, applying damage, and informing clients of said damage(s)
+--
+-- Dynamese (Enduo)
+-- 01.22.2022
 
 
 

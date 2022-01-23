@@ -119,6 +119,11 @@ function EntityService:CreateEntity(base, entityType, entityParams)
 end
 
 
+-- Used by otherservices to inform us and all clients about
+--  equipment changes
+-- @param base <Model>
+-- @param equipSlot <Enums.EquipSlot>
+-- @param itemData <itemDescriptor>
 function EntityService:NotifyEquipmentChange(base, equipSlot, itemData)
     local entity = self:GetEntity(base)
 
