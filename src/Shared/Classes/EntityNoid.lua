@@ -1,4 +1,4 @@
--- EntityNoid class
+-- EntityNoid class, variant of entity that resembles a roblox humanoid type existence
 --
 -- Dynamese (Enduo)
 -- 12.11.2021

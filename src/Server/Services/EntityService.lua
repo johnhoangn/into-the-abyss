@@ -103,7 +103,6 @@ function EntityService:CreateEntity(base, entityType, entityParams)
         end
     end)
     
-    self:AttachAttributes(base)
     self.EntityCreated:Fire(base)
 
     Network:FireAllClients(
@@ -156,18 +155,6 @@ function EntityService:DestroyEntity(base)
         -- entity destroyed replication automatically handled when "base"
         --  is destroyed and that state is communicated via Roblox
     end
-end
-
-
--- Applies attributes for auto-replication convenience
--- (Much better than the old "EntityChanged" communication via Network)
--- Unfortunately, will still need "EntityStatusApplied" and "EntityStatusRemoved"
--- @param base <Model>
-function EntityService:AttachAttributes(base)
-    base:SetAttribute("MaxHealth", 5000)
-    base:SetAttribute("Health", 5000)
-    base:SetAttribute("MaxEnergy", 20)
-    base:SetAttribute("Energy", 20)
 end
 
 

@@ -48,10 +48,23 @@ function Entity.new(base, initParams)
 	self.Attributes = {}
 
 	self:StartAttributeTracker()
+    self:AttachAttributes()
 	self:AddSignal("HealthChanged")
 	self:AddSignal("EnergyChanged")
 
 	return self
+end
+
+
+-- Applies attributes for auto-replication convenience
+-- (Much better than the old "EntityChanged" communication via Network)
+-- Unfortunately, will still need "EntityStatusApplied" and "EntityStatusRemoved"
+-- @param base <Model>
+function Entity:AttachAttributes()
+    self.Base:SetAttribute("MaxHealth", 50)
+    self.Base:SetAttribute("Health", 50)
+    self.Base:SetAttribute("MaxEnergy", 20)
+    self.Base:SetAttribute("Energy", 20)
 end
 
 
@@ -98,7 +111,7 @@ function Entity:Destroy()
 end
 
 
--- For simplification
+-- For consistency
 function Entity:UpdateState()
 end
 
