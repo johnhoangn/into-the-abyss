@@ -54,7 +54,17 @@ function StateMachine:AddTransition(name, from, to, qualifier)
 		FromState = from;
 		ToState = to;
 		Qualifier = qualifier;
+        Handlers = {};
 	})
+end
+
+
+-- Adds a handler that executes when we go through the given transition
+-- @param name <string> of transition
+-- @param handler <function> to execute
+function StateMachine:AddTransitionHandler(name, handler)
+    assert(self.Transitions:Get(name) ~= nil, "No transition by name: " .. name)
+    table.insert(self.Transitions:Get(name).Handlers, handler)
 end
 
 
@@ -98,6 +108,10 @@ function StateMachine:Transition(transitionName, ...)
 	)
 
 	self.CurrentState = transition.ToState
+
+    for _, handler in ipairs(transition.Handlers) do
+        handler(...)
+    end
 	self.StateChanged:Fire(currState, transition.ToState, transitionName, ...)
 end
 

@@ -13,6 +13,7 @@ EntityNoid.__index = EntityNoid
 setmetatable(EntityNoid, Entity)
 
 
+-- Add transitions here
 local Transitions = {
 	MoveStart = 0;
 	MoveStop = 1;
@@ -38,7 +39,8 @@ function EntityNoid.new(base, initParams)
 	local StateMachine = self.StateMachine
 	local States = StateMachine.States
 
-	-- TODO: Extend StateMachine as necessary for various entity behaviors
+	-- Extend StateMachine as necessary for various entity behaviors
+    -- Add transitions above as needed
 	StateMachine:AddState("Moving")
 	StateMachine:AddState("Jumping")
 	StateMachine:AddState("Falling")
@@ -71,9 +73,10 @@ function EntityNoid.new(base, initParams)
 	StateMachine:AddTransition(Transitions.StaggerStart, States.Any, States.Staggering, nil)
 	StateMachine:AddTransition(Transitions.StaggerStop, States.Staggering, States.Idle, nil)
 
-	StateMachine.StateChanged:Connect(function(from, to, name, ...)
-		--print(StateMachine:GetStateNameFromEnum(from), StateMachine:GetStateNameFromEnum(to), name, ...)
-	end)
+    StateMachine:AddTransitionHandler(Transitions.StaggerStart, function() self:UpdateMovement() end)
+    StateMachine:AddTransitionHandler(Transitions.StaggerStop, function() self:UpdateMovement() end)
+
+    self:AttachAttributes()
 
     if (self.LocalPlayer == nil) then
         self.Randoms = {
@@ -83,6 +86,18 @@ function EntityNoid.new(base, initParams)
     end
 
 	return self
+end
+
+
+-- Applies attributes for auto-replication convenience
+-- (Much better than the old "EntityChanged" communication via Network)
+-- Unfortunately, will still need "EntityStatusApplied" and "EntityStatusRemoved"
+-- @param base <Model>
+function Entity:AttachAttributes()
+    self.Base:SetAttribute("MaxHealth", 50)
+    self.Base:SetAttribute("Health", 50)
+    self.Base:SetAttribute("MaxEnergy", 20)
+    self.Base:SetAttribute("Energy", 20)
 end
 
 
@@ -101,10 +116,99 @@ function EntityNoid:Jump()
 end
 
 
+function EntityNoid:UpdateMovement()
+    local states = self.StateMachine.States
+    local state = self.StateMachine.CurrentState
+
+    if (state == states.Staggering) then
+        self.Base.Humanoid.WalkSpeed = 0
+        self.Base.Humanoid.JumpPower = 0
+    else
+        self.Base.Humanoid.WalkSpeed = self:GetWalkSpeed()
+        self.Base.Humanoid.JumpPower = self:GetJumpPower()
+    end
+end
+
+
+function EntityNoid:GetWalkSpeed()
+    return 16
+end
+
+
+function EntityNoid:GetJumpPower()
+    return 50
+end
+
+
 -- Go through all transitions' conditions to check which state we 
 --	should be in
 function EntityNoid:UpdateState()
 	self.StateMachine:UpdateState()
+end
+
+
+-- Retrieves attack values
+-- @returns <table>
+function EntityNoid:GetOffensiveValues()
+    return {
+        Melee = 0;
+        Ranged = 0;
+        Arcane = 0;
+    }
+end
+
+
+-- Retrieves offensive multipliers
+-- @returns <table>
+function EntityNoid:GetOffensiveMultipliers()
+    return {
+        Melee = 1.25;
+        Ranged = 1;
+        Arcane = 1;
+    }
+end
+
+
+-- Calculates critical rate
+-- @returns <number> [0, 0.75]
+function EntityNoid:GetCriticalRate()
+    return 1
+end
+
+
+-- Calculates critical multiplier
+-- @returns <number> [1.25, 3]
+function EntityNoid:GetCriticalMultiplier()
+    return 1.25
+end
+
+
+-- Calculates defense values
+-- @returns <table>
+function EntityNoid:GetDefensiveValues()
+    return {
+        Melee = 2;
+        Ranged = 2;
+        Arcane = 2;
+    }
+end
+
+
+-- Retrieves defensive multipliers
+-- @returns <table>
+function EntityNoid:GetDefensiveMultipliers()
+    return {
+        Melee = 1;
+        Ranged = 1;
+        Arcane = 1;
+    }
+end
+
+
+-- Calculates defense against critical damage
+-- @returns <number> [0, 0.75]
+function EntityNoid:GetCriticalDefense()
+    return 0
 end
 
 

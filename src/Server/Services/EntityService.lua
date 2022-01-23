@@ -19,7 +19,7 @@ local CacheMutex
 -- e.g. the world during dev
 -- @param base <Model>
 local function Prefab(base)
-    local entityParams = {}
+    local entityParams = EntityService.Modules.TableUtil.Copy(EntityService.Modules.DefaultEntityNoid)
 
     for _, parameter in ipairs(base.Configuration:GetChildren()) do
         entityParams[parameter.Name] = parameter.Value
@@ -120,6 +120,7 @@ end
 
 -- Used by otherservices to inform us and all clients about
 --  equipment changes
+-- Only player entities should ever reach this execution, => entity is EntityPC
 -- @param base <Model>
 -- @param equipSlot <Enums.EquipSlot>
 -- @param itemData <itemDescriptor>
