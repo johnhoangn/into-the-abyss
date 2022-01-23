@@ -40,34 +40,33 @@ end
 
 -- Creates a weapon
 -- @param baseID <string>
--- @param lowerM <number> rng
--- @param upperM <number> rng
--- @param lowerR <number> rng
--- @param upperR <number> rng
--- @param lowerA <number> rng
--- @param upperA <number> rng
+-- @param values <number> damage ratings
+-- @param extraData <table> dictionary of extra data
 -- @returns <ItemDescriptor>
-function ItemService:GenerateWeapon(baseID, lowerM, upperM, lowerR, upperR, lowerA, upperA)
+function ItemService:GenerateWeapon(baseID, values, extraData)
 	local asset = AssetService:GetAsset(baseID)
 	local class = asset.WeaponClass
 
+    values = values or {}
+    extraData = extraData or asset.ExtraData or {}
+
     if (class == self.Enums.WeaponClass.Shield) then
         -- interpreted as parameters for :GenerateArmor()
-        return self:GenerateArmor(baseID, lowerM, upperM, lowerR)
+        return self:GenerateArmor(baseID, values, extraData)
     end
 
 	assert(class ~= nil, "Not a weapon! " .. baseID)
 
     local attacks = asset.Attack
 
-    local lowerMelee = lowerM or RandomInstance:NextInteger(attacks.Melee.Min, attacks.Melee.Max)
-    local upperMelee = upperM or RandomInstance:NextInteger(lowerMelee, attacks.Melee.Max)
+    local lowerMelee = values.LowerM or RandomInstance:NextInteger(attacks.Melee.Min, attacks.Melee.Max)
+    local upperMelee = values.UpperM or RandomInstance:NextInteger(lowerMelee, attacks.Melee.Max)
 
-    local lowerRanged = lowerR or RandomInstance:NextInteger(attacks.Ranged.Min, attacks.Ranged.Max)
-    local upperRanged = upperR or RandomInstance:NextInteger(lowerRanged, attacks.Ranged.Max)
+    local lowerRanged = values.LowerR or RandomInstance:NextInteger(attacks.Ranged.Min, attacks.Ranged.Max)
+    local upperRanged = values.UpperR or RandomInstance:NextInteger(lowerRanged, attacks.Ranged.Max)
 
-    local lowerArcane = lowerA or RandomInstance:NextInteger(attacks.Arcane.Min, attacks.Arcane.Max)
-    local upperArcane = upperA or RandomInstance:NextInteger(lowerArcane, attacks.Arcane.Max)
+    local lowerArcane = values.LowerA or RandomInstance:NextInteger(attacks.Arcane.Min, attacks.Arcane.Max)
+    local upperArcane = values.UpperA or RandomInstance:NextInteger(lowerArcane, attacks.Arcane.Max)
 
     local itemData = {
 		BaseID = baseID;
@@ -83,37 +82,53 @@ function ItemService:GenerateWeapon(baseID, lowerM, upperM, lowerR, upperR, lowe
 		}
 	}
 
+    if (extraData) then
+        for key, data in pairs(self.Modules.TableUtil.Copy(extraData)) do
+            itemData.Info[key] = data
+        end
+    end
+
 	return itemData
 end
 
 
 -- Creates an armor
 -- @param baseID <string>
--- @param melee <number> rng
--- @param ranged <number> rng
--- @param arcane <number> rng
+-- @param values <number> defense ratings
+-- @param extraData <table> dictionary of extra data
 -- @returns <ItemDescriptor>
-function ItemService:GenerateArmor(baseID, melee, ranged, arcane)
+function ItemService:GenerateArmor(baseID, values, extraData)
 	local asset = AssetService:GetAsset(baseID)
 	local class = asset.ArmorClass or asset.WeaponClass -- Covers shields
 
+    values = values or {}
+    extraData = extraData or asset.ExtraData or {}
+
 	assert(class ~= nil, "Not an armor! " .. baseID)
-	return {
+    local itemData = {
 		BaseID = baseID;
         UID = HTTPService:GenerateGUID();
 		Amount = 1;
 		Info = {
 			Class = class;
 			Rolls = {
-                Melee = melee or RandomInstance:NextInteger(
+                Melee = values.LowerM or RandomInstance:NextInteger(
                     asset.Defense.Melee.Min, asset.Defense.Melee.Max);
-                Ranged = ranged or RandomInstance:NextInteger(
+                Ranged = values.LowerR or RandomInstance:NextInteger(
                     asset.Defense.Ranged.Min, asset.Defense.Ranged.Max);
-                Arcane = arcane or RandomInstance:NextInteger(
+                Arcane = values.LowerA or RandomInstance:NextInteger(
                     asset.Defense.Arcane.Min, asset.Defense.Arcane.Max);
             }
 		}
 	}
+
+    if (extraData) then
+        for key, data in pairs(self.Modules.TableUtil.Copy(extraData)) do
+            itemData.Info[key] = data
+        end
+    end
+
+	return itemData
 end
 
 
