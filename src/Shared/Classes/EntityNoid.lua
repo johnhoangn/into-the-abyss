@@ -25,6 +25,7 @@ local Transitions = {
 	Falling3 = 6;
 	Landed = 7;
 
+    --Died = 253;
 	StaggerStart = 254;
 	StaggerStop = 255;
 }
@@ -45,6 +46,8 @@ function EntityNoid.new(base, initParams)
 	StateMachine:AddState("Jumping")
 	StateMachine:AddState("Falling")
 	StateMachine:AddState("Staggering")
+    --StateMachine:AddState("Knocked")
+    --StateMachine:AddState("Dead")
 
 	StateMachine:AddTransition(Transitions.MoveStart, States.Idle, States.Moving, function() 
 		return self.Base.Humanoid.MoveDirection.Magnitude > 0.5 
@@ -70,11 +73,22 @@ function EntityNoid.new(base, initParams)
 		return self.Base.Humanoid.FloorMaterial ~= Enum.Material.Air
 	end)
 
-	StateMachine:AddTransition(Transitions.StaggerStart, States.Any, States.Staggering, nil)
-	StateMachine:AddTransition(Transitions.StaggerStop, States.Staggering, States.Idle, nil)
-
-    StateMachine:AddTransitionHandler(Transitions.StaggerStart, function() self:UpdateMovement() end)
-    StateMachine:AddTransitionHandler(Transitions.StaggerStop, function() self:UpdateMovement() end)
+	StateMachine:AddTransition(
+        Transitions.StaggerStart,
+        States.Any,
+        States.Staggering,
+        nil,
+        function()
+            self:UpdateMovement()
+        end)
+    StateMachine:AddTransition(
+        Transitions.StaggerStop,
+        States.Staggering,
+        States.Any,
+        nil,
+        function()
+            self:UpdateMovement()
+        end)
 
     self:AttachAttributes()
 

@@ -47,14 +47,14 @@ function StateMachine:AddState(stateName)
 end
 
 
-function StateMachine:AddTransition(name, from, to, qualifier)
+function StateMachine:AddTransition(name, from, to, qualifier, ...)
 	assert(self.Transitions:Get(name) == nil, "Redundant transition definition: " .. name)
 
 	self.Transitions:Add(name, {
 		FromState = from;
 		ToState = to;
 		Qualifier = qualifier;
-        Handlers = {};
+        Handlers = {...};
 	})
 end
 
