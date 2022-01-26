@@ -9,6 +9,7 @@
 local ItemService = { Priority = 700; CPriority = 200 }
 
 
+-- List of AssetClasses that are considered "items"
 -- Ordering here does NOT matter
 local ITEM_CLASSES = {"Junk", "Ware", "Weapon", "Armor", "Consumable"}
 
