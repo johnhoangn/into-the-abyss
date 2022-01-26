@@ -69,7 +69,7 @@ local function ReceiveData(_dt, data)
 	DataCache = data
 	-- We don't need this anymore
 	Network:UnhandleRequestType(Network.NetRequestType.DataStream)
-	DataService.DataReceived:Fire()
+	DataService.DataReceived:Fire(data)
 	DataService.DataReceived:Destroy()
 	DataService.DataReceived = nil
 
@@ -84,7 +84,7 @@ end
 -- Cache getter
 -- @returns <table>
 function DataService:GetCache()
-	return DataCache or self.DataReceived:Wait() and DataCache
+	return DataCache or self.DataReceived:Wait()
 end
 
 
