@@ -21,6 +21,7 @@
 
 
 local EntityModifiers = { Priority = 690; }
+local Calculators
 local Network, EntityService
 local HttpService
 
@@ -102,6 +103,9 @@ function EntityModifiers:AddModifier(base, baseID, modifierArgs, name)
         end)
     end
 
+    -- Apply movement modifiers
+    EntityService:GetEntity(base):UpdateMovement()
+
     -- Let everyone know
     Network:FireAllClients(
         Network:Pack(
@@ -139,7 +143,13 @@ function EntityModifiers:GetModifiers(base)
 end
 
 
-function EntityModifiers:GetModifiersOfType(base, mType)
+function EntityModifiers:CalculateTarget(base, target)
+    return Calculators["Calculate" .. target](self, base)
+end
+
+
+function EntityModifiers:IsManaging(base)
+    return ManagedBases:Get(base) ~= nil
 end
 
 
@@ -150,6 +160,7 @@ function EntityModifiers:EngineInit()
     HttpService = self.RBXServices.HttpService
 
     ModifierFactory = self.Modules.EntityModifierFactory
+    Calculators = self.Modules.EntityModifierCalculators
 
     ManagedBases = self.Classes.IndexedMap.new()
 end

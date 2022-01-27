@@ -7,6 +7,7 @@
 
 local Engine = _G.Deep
 local AssetService = Engine.Services.AssetService
+local EntityModifiers = Engine.Services.EntityModifiers
 local Entity = require(script.Parent.Entity)
 local EntityNoid = {}
 EntityNoid.__index = EntityNoid
@@ -131,6 +132,8 @@ end
 
 
 function EntityNoid:UpdateMovement()
+    if (not EntityModifiers:IsManaging(self.Base)) then return end
+
     local states = self.StateMachine.States
     local state = self.StateMachine.CurrentState
 
@@ -138,19 +141,9 @@ function EntityNoid:UpdateMovement()
         self.Base.Humanoid.WalkSpeed = 0
         self.Base.Humanoid.JumpPower = 0
     else
-        self.Base.Humanoid.WalkSpeed = self:GetWalkSpeed()
-        self.Base.Humanoid.JumpPower = self:GetJumpPower()
+        self.Base.Humanoid.WalkSpeed = EntityModifiers:CalculateTarget(self.Base, "Walkspeed")
+        self.Base.Humanoid.JumpPower = EntityModifiers:CalculateTarget(self.Base, "JumpPower")
     end
-end
-
-
-function EntityNoid:GetWalkSpeed()
-    return 16
-end
-
-
-function EntityNoid:GetJumpPower()
-    return 50
 end
 
 
