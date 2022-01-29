@@ -1,4 +1,4 @@
--- EntityModifiers server
+-- EntityModifiers server, submodule of EntityService
 --
 -- "Modifiers," Not to be confused with an item's "Modifiers*" field,
 --  or a "modifier key," etc. Will be used to refer to the collection
@@ -6,7 +6,7 @@
 --  Conditions (Buffs, Ailments), Passives (Skills), Equipment effects*(Enchants, Innates, etc.)
 --
 -- An item's "Modifiers" list refers to modifiers that will be applied to the owning
---  entity via this service by EquipService
+--  entity via this module
 --
 -- Manages modifiers such as status effects in a single place
 -- Also applies modifier effects that must happening on application of the modifier
@@ -20,7 +20,7 @@
 
 
 
-local EntityModifiers = { Priority = 690; }
+local EntityModifiers = {}
 local Calculators
 local Network, EntityService
 local HttpService
@@ -153,7 +153,7 @@ function EntityModifiers:IsManaging(base)
 end
 
 
-function EntityModifiers:EngineInit()
+function EntityModifiers:Init()
     Network = self.Services.Network
     EntityService = self.Services.EntityService
 
@@ -166,7 +166,7 @@ function EntityModifiers:EngineInit()
 end
 
 
-function EntityModifiers:EngineStart()
+function EntityModifiers:StartManager()
 	EntityService.EntityCreated:Connect(function(base)
         self:Manage(base)
     end)

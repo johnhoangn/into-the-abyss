@@ -1,4 +1,4 @@
--- EntityModifiers client
+-- EntityModifiers client, submodule of entityservice
 -- Manages modifiers such as status effects in a single place
 -- 
 -- Dynamese(Enduo)
