@@ -7,29 +7,11 @@
 
 local Engine = _G.Deep
 local AssetService = Engine.Services.AssetService
-local EntityModifiers = Engine.Services.EntityModifiers
+local EntityModifiers = Engine.Modules.EntityModifiers
 local Entity = require(script.Parent.Entity)
 local EntityNoid = {}
 EntityNoid.__index = EntityNoid
 setmetatable(EntityNoid, Entity)
-
-
--- Add transitions here
-local Transitions = {
-	MoveStart = 0;
-	MoveStop = 1;
-
-	MoveJump = 2;
-	Jump = 3;
-	Falling1 = 4;
-	Falling2 = 5;
-	Falling3 = 6;
-	Landed = 7;
-
-    --Died = 253;
-	StaggerStart = 254;
-	StaggerStop = 255;
-}
 
 
 -- Normal constructor
@@ -42,7 +24,6 @@ function EntityNoid.new(base, initParams)
 	local States = StateMachine.States
 
 	-- Extend StateMachine as necessary for various entity behaviors
-    -- Add transitions above as needed
 	StateMachine:AddState("Moving")
 	StateMachine:AddState("Jumping")
 	StateMachine:AddState("Falling")
@@ -50,32 +31,32 @@ function EntityNoid.new(base, initParams)
     --StateMachine:AddState("Knocked")
     --StateMachine:AddState("Dead")
 
-	StateMachine:AddTransition(Transitions.MoveStart, States.Idle, States.Moving, function() 
+	StateMachine:AddTransition("MoveStart", States.Idle, States.Moving, function() 
 		return self.Base.Humanoid.MoveDirection.Magnitude > 0.5 
 	end)
-	StateMachine:AddTransition(Transitions.MoveStop, States.Moving, States.Idle, function() 
+	StateMachine:AddTransition("MoveStop", States.Moving, States.Idle, function() 
 		return self.Base.Humanoid.MoveDirection.Magnitude < 0.5 
 	end)
 
-	StateMachine:AddTransition(Transitions.MoveJump, States.Moving, States.Jumping, nil)
-	StateMachine:AddTransition(Transitions.Jump, States.Idle, States.Jumping, nil)
+	StateMachine:AddTransition("MoveJump", States.Moving, States.Jumping, nil)
+	StateMachine:AddTransition("Jump", States.Idle, States.Jumping, nil)
 
-	StateMachine:AddTransition(Transitions.Falling1, States.Idle, States.Falling, function()
+	StateMachine:AddTransition("Falling1", States.Idle, States.Falling, function()
 		return self.Base.Humanoid.FloorMaterial == Enum.Material.Air and self.Base.PrimaryPart.Velocity.Y < 1
 	end)
-	StateMachine:AddTransition(Transitions.Falling2, States.Moving, States.Falling, function()
+	StateMachine:AddTransition("Falling2", States.Moving, States.Falling, function()
 		return self.Base.Humanoid.FloorMaterial == Enum.Material.Air and self.Base.PrimaryPart.Velocity.Y < 1
 	end)
-	StateMachine:AddTransition(Transitions.Falling3, States.Jumping, States.Falling, function()
+	StateMachine:AddTransition("Falling3", States.Jumping, States.Falling, function()
 		return self.Base.PrimaryPart.Velocity.Y < 1
 	end)
 	
-	StateMachine:AddTransition(Transitions.Landed, States.Falling, States.Idle, function()
+	StateMachine:AddTransition("Landed", States.Falling, States.Idle, function()
 		return self.Base.Humanoid.FloorMaterial ~= Enum.Material.Air
 	end)
 
 	StateMachine:AddTransition(
-        Transitions.StaggerStart,
+        "StaggerStart",
         States.Any,
         States.Staggering,
         nil,
@@ -83,7 +64,7 @@ function EntityNoid.new(base, initParams)
             self:UpdateMovement()
         end)
     StateMachine:AddTransition(
-        Transitions.StaggerStop,
+        "StaggerStop",
         States.Staggering,
         States.Any,
         nil,
@@ -125,7 +106,7 @@ end
 
 
 function EntityNoid:Jump()
-	self.StateMachine:Transition(Transitions.Jump)
+	self.StateMachine:Transition("Jump")
 	self.Base.Humanoid.Jump = true
 	--self.Root:ApplyImpulse(Vector3.new(0, 50, 0) * self.Root.AssemblyMass)
 end
@@ -156,23 +137,15 @@ end
 
 -- Retrieves attack values
 -- @returns <table>
-function EntityNoid:GetOffensiveValues()
-    return {
-        Melee = 0;
-        Ranged = 0;
-        Arcane = 0;
-    }
+function EntityNoid:GetOffensives()
+    return EntityModifiers:CalculateOffensives(self.Base)
 end
 
 
--- Retrieves offensive multipliers
+-- Calculates defense values
 -- @returns <table>
-function EntityNoid:GetOffensiveMultipliers()
-    return {
-        Melee = 1.25;
-        Ranged = 1;
-        Arcane = 1;
-    }
+function EntityNoid:GetDefensives()
+    return EntityModifiers:CalculateDefensives(self.Base)
 end
 
 
@@ -187,17 +160,6 @@ end
 -- @returns <number> [1.25, 3]
 function EntityNoid:GetCriticalMultiplier()
     return 1.25
-end
-
-
--- Calculates defense values
--- @returns <table>
-function EntityNoid:GetDefensiveValues()
-    return {
-        Melee = 2;
-        Ranged = 2;
-        Arcane = 2;
-    }
 end
 
 
