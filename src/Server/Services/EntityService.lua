@@ -9,6 +9,7 @@
 local EntityService = { Priority = 700 }
 local AssetService, CollectionService, Network
 local NetProtocol, NetRequestType
+local EntityModifiers
 
 
 local AllEntities
@@ -19,7 +20,7 @@ local CacheMutex
 -- e.g. the world during dev
 -- @param base <Model>
 local function Prefab(base)
-    local entityParams = {}
+    local entityParams = EntityService.Modules.TableUtil.Copy(EntityService.Modules.DefaultEntityNoid)
 
     for _, parameter in ipairs(base.Configuration:GetChildren()) do
         entityParams[parameter.Name] = parameter.Value
@@ -120,6 +121,7 @@ end
 
 -- Used by otherservices to inform us and all clients about
 --  equipment changes
+-- Only player entities should ever reach this execution, => entity is EntityPC
 -- @param base <Model>
 -- @param equipSlot <Enums.EquipSlot>
 -- @param itemData <itemDescriptor>
@@ -165,11 +167,15 @@ function EntityService:EngineInit()
     AssetService = self.Services.AssetService
     CollectionService = self.RBXServices.CollectionService
 
+    EntityModifiers = self.Modules.EntityModifiers
+
     CacheMutex = self.Classes.Mutex.new()
     AllEntities = self.Classes.IndexedMap.new()
 
     self.EntityCreated = self.Classes.Signal.new()
     self.EntityDestroyed = self.Classes.Signal.new()
+
+    EntityModifiers:Init()
 
     Network:HandleRequestType(NetRequestType.EntityRequest, function(client, _dt, base)
         local entity = self:GetEntity(base)
@@ -193,6 +199,8 @@ end
 
 
 function EntityService:EngineStart()
+    EntityModifiers:StartManager()
+
     self.Services.PlayerService:AddJoinTask(function(user)
         local bases = {}
         local entityData

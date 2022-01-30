@@ -39,19 +39,23 @@ local AssetCache, AssetsRoot
 -- Converts a folder and its sub-folders into a table
 -- @param root <Folder>
 local function CacheAssetHelper(root)
-	local tbl = {}
-	
-	for _, child in ipairs(root:GetChildren()) do
-		if (child:IsA("Folder")) then
-			tbl[child.Name] = CacheAssetHelper(child)
-		elseif (child:IsA("ValueBase")) then
-			tbl[child.Name] = child.Value
-		else
-			tbl[child.Name] = child			
-		end
-	end
-	
-	return tbl
+    if (root:IsA("Folder")) then -- dictionarylike
+        local subchildren = {}
+        for _, subchild in ipairs(root:GetChildren()) do
+            subchildren[subchild.Name] = CacheAssetHelper(subchild)
+        end
+        return subchildren
+    elseif (root:IsA("Configuration")) then -- arraylike
+        local subchildren = {}
+        for _, subchild in ipairs(root:GetChildren()) do
+            table.insert(subchildren, CacheAssetHelper(subchild))
+        end
+        return subchildren
+    elseif (root:IsA("ValueBase")) then
+        return root.Value
+    else
+        return root
+    end
 end
 
 

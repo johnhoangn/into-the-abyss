@@ -7,26 +7,11 @@
 
 local Engine = _G.Deep
 local AssetService = Engine.Services.AssetService
+local EntityModifiers = Engine.Modules.EntityModifiers
 local Entity = require(script.Parent.Entity)
 local EntityNoid = {}
 EntityNoid.__index = EntityNoid
 setmetatable(EntityNoid, Entity)
-
-
-local Transitions = {
-	MoveStart = 0;
-	MoveStop = 1;
-
-	MoveJump = 2;
-	Jump = 3;
-	Falling1 = 4;
-	Falling2 = 5;
-	Falling3 = 6;
-	Landed = 7;
-
-	StaggerStart = 254;
-	StaggerStop = 255;
-}
 
 
 -- Normal constructor
@@ -38,42 +23,56 @@ function EntityNoid.new(base, initParams)
 	local StateMachine = self.StateMachine
 	local States = StateMachine.States
 
-	-- TODO: Extend StateMachine as necessary for various entity behaviors
+	-- Extend StateMachine as necessary for various entity behaviors
 	StateMachine:AddState("Moving")
 	StateMachine:AddState("Jumping")
 	StateMachine:AddState("Falling")
 	StateMachine:AddState("Staggering")
+    --StateMachine:AddState("Knocked")
+    --StateMachine:AddState("Dead")
 
-	StateMachine:AddTransition(Transitions.MoveStart, States.Idle, States.Moving, function() 
+	StateMachine:AddTransition("MoveStart", States.Idle, States.Moving, function() 
 		return self.Base.Humanoid.MoveDirection.Magnitude > 0.5 
 	end)
-	StateMachine:AddTransition(Transitions.MoveStop, States.Moving, States.Idle, function() 
+	StateMachine:AddTransition("MoveStop", States.Moving, States.Idle, function() 
 		return self.Base.Humanoid.MoveDirection.Magnitude < 0.5 
 	end)
 
-	StateMachine:AddTransition(Transitions.MoveJump, States.Moving, States.Jumping, nil)
-	StateMachine:AddTransition(Transitions.Jump, States.Idle, States.Jumping, nil)
+	StateMachine:AddTransition("MoveJump", States.Moving, States.Jumping, nil)
+	StateMachine:AddTransition("Jump", States.Idle, States.Jumping, nil)
 
-	StateMachine:AddTransition(Transitions.Falling1, States.Idle, States.Falling, function()
+	StateMachine:AddTransition("Falling1", States.Idle, States.Falling, function()
 		return self.Base.Humanoid.FloorMaterial == Enum.Material.Air and self.Base.PrimaryPart.Velocity.Y < 1
 	end)
-	StateMachine:AddTransition(Transitions.Falling2, States.Moving, States.Falling, function()
+	StateMachine:AddTransition("Falling2", States.Moving, States.Falling, function()
 		return self.Base.Humanoid.FloorMaterial == Enum.Material.Air and self.Base.PrimaryPart.Velocity.Y < 1
 	end)
-	StateMachine:AddTransition(Transitions.Falling3, States.Jumping, States.Falling, function()
+	StateMachine:AddTransition("Falling3", States.Jumping, States.Falling, function()
 		return self.Base.PrimaryPart.Velocity.Y < 1
 	end)
 	
-	StateMachine:AddTransition(Transitions.Landed, States.Falling, States.Idle, function()
+	StateMachine:AddTransition("Landed", States.Falling, States.Idle, function()
 		return self.Base.Humanoid.FloorMaterial ~= Enum.Material.Air
 	end)
 
-	StateMachine:AddTransition(Transitions.StaggerStart, States.Any, States.Staggering, nil)
-	StateMachine:AddTransition(Transitions.StaggerStop, States.Staggering, States.Idle, nil)
+	StateMachine:AddTransition(
+        "StaggerStart",
+        States.Any,
+        States.Staggering,
+        nil,
+        function()
+            self:UpdateMovement()
+        end)
+    StateMachine:AddTransition(
+        "StaggerStop",
+        States.Staggering,
+        States.Any,
+        nil,
+        function()
+            self:UpdateMovement()
+        end)
 
-	StateMachine.StateChanged:Connect(function(from, to, name, ...)
-		--print(StateMachine:GetStateNameFromEnum(from), StateMachine:GetStateNameFromEnum(to), name, ...)
-	end)
+    self:AttachAttributes()
 
     if (self.LocalPlayer == nil) then
         self.Randoms = {
@@ -86,6 +85,18 @@ function EntityNoid.new(base, initParams)
 end
 
 
+-- Applies attributes for auto-replication convenience
+-- (Much better than the old "EntityChanged" communication via Network)
+-- Unfortunately, will still need "EntityStatusApplied" and "EntityStatusRemoved"
+-- @param base <Model>
+function Entity:AttachAttributes()
+    self.Base:SetAttribute("MaxHealth", 50)
+    self.Base:SetAttribute("Health", 50)
+    self.Base:SetAttribute("MaxEnergy", 20)
+    self.Base:SetAttribute("Energy", 20)
+end
+
+
 function EntityNoid:CanJump()
 	return self.Base.Humanoid.FloorMaterial ~= Enum.Material.Air
 		and self.Base.PrimaryPart.Velocity.Y < 5
@@ -95,9 +106,25 @@ end
 
 
 function EntityNoid:Jump()
-	self.StateMachine:Transition(Transitions.Jump)
+	self.StateMachine:Transition("Jump")
 	self.Base.Humanoid.Jump = true
 	--self.Root:ApplyImpulse(Vector3.new(0, 50, 0) * self.Root.AssemblyMass)
+end
+
+
+function EntityNoid:UpdateMovement()
+    if (not EntityModifiers:IsManaging(self.Base)) then return end
+
+    local states = self.StateMachine.States
+    local state = self.StateMachine.CurrentState
+
+    if (state == states.Staggering) then
+        self.Base.Humanoid.WalkSpeed = 0
+        self.Base.Humanoid.JumpPower = 0
+    else
+        self.Base.Humanoid.WalkSpeed = EntityModifiers:CalculateTarget(self.Base, "Walkspeed")
+        self.Base.Humanoid.JumpPower = EntityModifiers:CalculateTarget(self.Base, "JumpPower")
+    end
 end
 
 
@@ -105,6 +132,52 @@ end
 --	should be in
 function EntityNoid:UpdateState()
 	self.StateMachine:UpdateState()
+end
+
+
+-- Retrieves attack values
+-- @returns <table>
+function EntityNoid:GetOffensives()
+    return EntityModifiers:CalculateOffensives(self.Base)
+end
+
+
+-- Calculates defense values
+-- @returns <table>
+function EntityNoid:GetDefensives()
+    return EntityModifiers:CalculateDefensives(self.Base)
+end
+
+
+-- Calculates critical rate
+-- @returns <number> [0, 0.75]
+function EntityNoid:GetCriticalRate()
+    return 1
+end
+
+
+-- Calculates critical multiplier
+-- @returns <number> [1.25, 3]
+function EntityNoid:GetCriticalMultiplier()
+    return 1.25
+end
+
+
+-- Retrieves defensive multipliers
+-- @returns <table>
+function EntityNoid:GetDefensiveMultipliers()
+    return {
+        Melee = 1;
+        Ranged = 1;
+        Arcane = 1;
+    }
+end
+
+
+-- Calculates defense against critical damage
+-- @returns <number> [0, 0.75]
+function EntityNoid:GetCriticalDefense()
+    return 0
 end
 
 

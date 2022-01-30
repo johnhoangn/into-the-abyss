@@ -48,23 +48,10 @@ function Entity.new(base, initParams)
 	self.Attributes = {}
 
 	self:StartAttributeTracker()
-    self:AttachAttributes()
 	self:AddSignal("HealthChanged")
 	self:AddSignal("EnergyChanged")
 
 	return self
-end
-
-
--- Applies attributes for auto-replication convenience
--- (Much better than the old "EntityChanged" communication via Network)
--- Unfortunately, will still need "EntityStatusApplied" and "EntityStatusRemoved"
--- @param base <Model>
-function Entity:AttachAttributes()
-    self.Base:SetAttribute("MaxHealth", 50)
-    self.Base:SetAttribute("Health", 50)
-    self.Base:SetAttribute("MaxEnergy", 20)
-    self.Base:SetAttribute("Energy", 20)
 end
 
 
@@ -152,73 +139,6 @@ function Entity:StartAttributeTracker()
 		self.Attributes[attr] = self.Base:GetAttribute(attr)
 		self:UpdateState()
 	end))
-end
-
-
-
-
--- Retrieves attack values
--- @returns <table>
-function Entity:GetOffensiveValues()
-    return {
-        Melee = 0;
-        Ranged = 0;
-        Arcane = 0;
-    }
-end
-
-
--- Retrieves offensive multipliers
--- @returns <table>
-function Entity:GetOffensiveMultipliers()
-    return {
-        Melee = 1.25;
-        Ranged = 1;
-        Arcane = 1;
-    }
-end
-
-
--- Calculates critical rate
--- @returns <number> [0, 0.75]
-function Entity:GetCriticalRate()
-    return 1
-end
-
-
--- Calculates critical multiplier
--- @returns <number> [1.25, 3]
-function Entity:GetCriticalMultiplier()
-    return 1.25
-end
-
-
--- Calculates defense values
--- @returns <table>
-function Entity:GetDefensiveValues()
-    return {
-        Melee = 2;
-        Ranged = 2;
-        Arcane = 2;
-    }
-end
-
-
--- Retrieves defensive multipliers
--- @returns <table>
-function Entity:GetDefensiveMultipliers()
-    return {
-        Melee = 1;
-        Ranged = 1;
-        Arcane = 1;
-    }
-end
-
-
--- Calculates defense against critical damage
--- @returns <number> [0, 0.75]
-function Entity:GetCriticalDefense()
-    return 0
 end
 
 

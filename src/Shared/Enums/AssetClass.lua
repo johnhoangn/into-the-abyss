@@ -22,4 +22,6 @@ return {
 	Consumable = 11;
 	Material = 12;
 	Ingredient = 13;
+
+    Modifier = 14;
 }
