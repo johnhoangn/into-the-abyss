@@ -9,6 +9,7 @@
 local EntityService = { Priority = 700 }
 local AssetService, CollectionService, Network
 local NetProtocol, NetRequestType
+local EntityModifiers
 
 
 local AllEntities
@@ -166,11 +167,15 @@ function EntityService:EngineInit()
     AssetService = self.Services.AssetService
     CollectionService = self.RBXServices.CollectionService
 
+    EntityModifiers = self.Modules.EntityModifiers
+
     CacheMutex = self.Classes.Mutex.new()
     AllEntities = self.Classes.IndexedMap.new()
 
     self.EntityCreated = self.Classes.Signal.new()
     self.EntityDestroyed = self.Classes.Signal.new()
+
+    EntityModifiers:Init()
 
     Network:HandleRequestType(NetRequestType.EntityRequest, function(client, _dt, base)
         local entity = self:GetEntity(base)
@@ -194,6 +199,8 @@ end
 
 
 function EntityService:EngineStart()
+    EntityModifiers:StartManager()
+
     self.Services.PlayerService:AddJoinTask(function(user)
         local bases = {}
         local entityData
