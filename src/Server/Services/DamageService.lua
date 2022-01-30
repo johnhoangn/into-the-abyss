@@ -17,8 +17,7 @@ local Network
 -- @param arcaneRate <number> % of arcane to use
 -- @param allRate <number> % of all to use
 function DamageService:Package(attacker, meleeRate, rangedRate, arcaneRate, allRate)
-    local offensiveValues = attacker:GetOffensiveValues()
-    local offensiveMultipliers = attacker:GetOffensiveMultipliers()
+    local offensiveValues, offensiveMultipliers = attacker:GetOffensives()
     return self.Classes.DamagePackage.new(
         offensiveValues,
         offensiveMultipliers,

@@ -51,8 +51,7 @@ end
 -- @param isCrit <boolean>
 -- @param critMult <number>
 function DamagePackage:Mitigate(victim, isCrit, critMult)
-    local defensiveValues = victim:GetDefensiveValues()
-    local defensiveModifiers = victim:GetDefensiveMultipliers()
+    local defensiveValues, defensiveModifiers = victim:GetDefensives()
     local mitigated = {
         Damages = {};
         IsCrit = isCrit;

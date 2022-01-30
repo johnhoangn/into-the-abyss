@@ -48,8 +48,8 @@ end
 
 -- Calculates attack values including weapon roll(s)
 -- @returns <table>
-function EntityPC:GetOffensiveValues()
-    local values = EntityNoid:GetOffensiveValues()
+function EntityPC:GetOffensives()
+    local flats, percs = EntityNoid.GetOffensives(self)
 
     for equipSlot = 4, 5 do
         local dataCell = self.Equipment[equipSlot]
@@ -58,8 +58,8 @@ function EntityPC:GetOffensiveValues()
             local asset = AssetService:GetAsset(dataCell.BaseID)
 
             if (asset.WeaponClass ~= self.Enums.WeaponClass.Shield) then
-                for damageType, _ in pairs(values) do
-                    values[damageType] += self.Randoms.Attack:NextInteger(
+                for damageType, _ in pairs(flats) do
+                    flats[damageType] += self.Randoms.Attack:NextInteger(
                         dataCell.Info.Rolls[damageType][1],
                         dataCell.Info.Rolls[damageType][2]
                     )
@@ -68,7 +68,7 @@ function EntityPC:GetOffensiveValues()
         end
     end
 
-    return values
+    return flats, percs
 end
 
 

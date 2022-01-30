@@ -147,6 +147,15 @@ function EntityModifiers:CalculateTarget(base, target)
     return Calculators["Calculate" .. target](self, base)
 end
 
+function EntityModifiers:CalculateOffensives(base)
+    return Calculators.CalculateOffensives(self, base)
+end
+
+
+function EntityModifiers:CalculateDefensives(base)
+    return Calculators.CalculateDefensives(self, base)
+end
+
 
 function EntityModifiers:IsManaging(base)
     return ManagedBases:Get(base) ~= nil
