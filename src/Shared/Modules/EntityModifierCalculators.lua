@@ -21,8 +21,11 @@ function Calculators:SumTargets(modifiers, targets)
         percs[target] = 1
     end
 
+    -- I would estimate about 20 of these
     for _, modifier in ipairs(modifiers) do
+        -- Probably 3 avg per
         for effect, effectData in pairs(modifier.Effects) do
+            -- Max 3? See below macros
             for _, target in ipairs(targets) do
                 if (effect == target) then
                     if (effectData.IsPercentage) then
@@ -34,6 +37,9 @@ function Calculators:SumTargets(modifiers, targets)
             end
         end
     end
+    -- 20 * 3 * 3
+    -- Average N = 180 for combat calculations
+    -- N = 60 for non-combat
 
     return flats, percs
 end
