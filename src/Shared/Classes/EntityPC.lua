@@ -114,7 +114,7 @@ local function ChooseAttachmentBase(groupName, equipSlot)
 end
 
 
-function EntityPC:DrawEquipmentSlot(equipSlot)
+function EntityPC:DrawEquipmentSlot(equipSlot) print(self.Equipment)
     if (not self.EquipmentModels) then
         return
     end
@@ -137,8 +137,11 @@ function EntityPC:DrawEquipmentSlot(equipSlot)
             submodel:PivotTo(attachmentBase.CFrame)
             submodel.PrimaryPart:Destroy()
 
-            self.Modules.WeldUtil:WeldParts(attachmentBase, unpack(submodel:GetChildren()))
-            table.insert(self.EquipmentModelsParts[equipSlot], attachmentBase)
+            for _, descendant in ipairs(submodel:GetDescendants()) do
+                if (not descendant:IsA("BasePart")) then continue end
+                self.Modules.WeldUtil:WeldParts(attachmentBase, descendant)
+                table.insert(self.EquipmentModelsParts[equipSlot], descendant)
+            end
         end
 
         model.Name = equipSlot

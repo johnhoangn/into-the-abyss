@@ -93,12 +93,6 @@ function EquipService:EquipDualSlotItem(user, itemData)
 	if (primarySlot:Get("BaseID") ~= -1) then
 		-- Not clearing since the below :ReadData() has a builtin :Clear() call
 		table.insert(replacing, primarySlot:GetData())
-		-- Inform of the new primary weapon
-		EntityService:NotifyEquipmentChange(
-			user.Character, 
-			EquipSlot.Primary, 
-			itemData
-		)
 	end
 
 	if (secondarySlot:Get("BaseID") ~= -1) then
@@ -114,6 +108,13 @@ function EquipService:EquipDualSlotItem(user, itemData)
 
 	-- Equip it
 	primarySlot:ReadData(itemData)
+    
+    -- Inform of the new primary weapon
+    EntityService:NotifyEquipmentChange(
+        user.Character, 
+        EquipSlot.Primary, 
+        itemData
+    )
 
 	return replacing
 end
