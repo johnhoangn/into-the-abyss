@@ -108,6 +108,7 @@ function Queue:RemoveAllWhere(callback)
 	while (curr ~= self.Tail) do
 		if (callback(curr.Data) == true) then
 			curr.Prev.Next = curr.Next
+            curr.Next.Prev = curr.Prev
             table.insert(removed, curr.Data)
 		end
         curr = curr.Next
