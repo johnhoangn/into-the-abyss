@@ -97,6 +97,7 @@ end
 -- @param coreAnimator
 function Animator:LoadCoreModule(coreAnimator)
 	self.PickCoreTrack = coreAnimator.PickCoreTrack or self.PickCoreTrack
+    self.PickJumpTrack = coreAnimator.PickJumpTrack or self.PickJumpTrack
 	self.PlayCore = coreAnimator.PlayCore or self.PlayCore
 	self.PlayAction = coreAnimator.PlayAction or self.PlayAction
 	self.Step = coreAnimator.Step or self.Step
