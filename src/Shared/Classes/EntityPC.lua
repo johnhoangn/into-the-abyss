@@ -208,7 +208,7 @@ function EntityPC:Hide()
     self.Face = nil
     self._FaceParts = nil
 
-    for _, model in ipairs(self.EquipmentModels) do model:Destroy() end
+    for _, model in pairs(self.EquipmentModels) do model:Destroy() end
     self.EquipmentModels = nil
     self.EquipmentModelsParts = nil
 end

@@ -177,7 +177,7 @@ function Thread.IntDelay(waitTime, completeCallback, ...)
         end
     end
 
-    table.insert(conns, Thread.DelayRepeat(waitTime, function()
+    table.insert(conns, Thread.Delay(waitTime, function()
         completeCallback()
     end))
 
