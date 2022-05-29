@@ -36,9 +36,9 @@ end
 
 function ListenerList:Add(signal)
     table.insert(self._events, signal:Connect(function(...)
-        if (self._execLock.TryLock()) then
+        if (self._execLock:TryLock()) then
             self:ExecuteCallbacks(...)
-            self._execLock.Unlock()
+            self._execLock:Unlock()
         end
     end))
     return self
