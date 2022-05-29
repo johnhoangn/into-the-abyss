@@ -1,105 +1,58 @@
--- Listener List
--- Stephen Leitnick
--- November 1, 2015
-
---[[
-	
-	local listeners = ListenerList.new()
-	
-	listeners:Connect(event, func)
-	listeners:BindToRenderStep(name, priority, func)
-	listeners:BindAction(actionName, funcToBind, createTouchBtn [, inputTypes...])
-	listeners:BindActionAtPriority(actionName, funcToBind, createTouchBtn, priorityLevel [, inputTypes...])
-
-	listeners:DisconnectAll()
-	listeners:DisconnectEvents()
-	listeners:DisconnectRenderSteps()
-	listeners:DisconnectActions()
-
-	listeners:Destroy()
-		> Alias for DisconnectAll
-	
---]]
+-- Listener List, binds all listened-to events to one signal
+-- Dynamese(Enduo)
+-- 02.06.22
 
 
 
+local DeepObject = require(script.Parent.DeepObject)
 local ListenerList = {}
 ListenerList.__index = ListenerList
+setmetatable(ListenerList, DeepObject)
 
 
-function ListenerList.new()
-	local self = setmetatable({
-		_listeners = {};
-		_renderStepNames = {};
-		_actionNames = {};
-	}, ListenerList)
+function ListenerList.new(...)
+    local self = setmetatable(DeepObject.new({
+        _events = {};
+        _callbacks = {};
+    }), ListenerList)
+
+    for _, signal in ipairs({...}) do
+        self:Add(signal)
+    end
+
 	return self
 end
 
 
--- Connect a function to an event and store it in the list:
-function ListenerList:Connect(event, func)
-	local listener = event:Connect(func)
-	table.insert(self._listeners, listener)
-	return listener
+function ListenerList:ExecuteCallbacks(...)
+    for _, callback in ipairs(self._callbacks) do
+        callback(...)
+    end
+    return self
 end
 
 
-function ListenerList:BindToRenderStep(name, ...)
-	table.insert(self._renderStepNames, name)
-	game:GetService("RunService"):BindToRenderStep(name, ...)
+function ListenerList:Add(signal)
+    table.insert(self._events, signal:Connect(function(...) self:ExecuteCallbacks(...) end))
+    return self
 end
 
 
-function ListenerList:BindAction(name, ...)
-	table.insert(self._actionNames, name)
-	game:GetService("ContextActionService"):BindAction(name, ...)
+function ListenerList:Connect(callback)
+    table.insert(self._callbacks, callback)
+    return self
 end
 
 
-function ListenerList:BindActionAtPriority(name, ...)
-	table.insert(self._actionNames, name)
-	game:GetService("ContextActionService"):BindActionAtPriority(name, ...)
+function ListenerList:Destroy()
+    for _, event in ipairs(self._events) do
+        event:Disconnect()
+    end
+    getmetatable(ListenerList).Destroy(self)
 end
 
 
-function ListenerList:DisconnectEvents()
-	for _,l in ipairs(self._listeners) do
-		if (l.Connected) then
-			l:Disconnect()
-		end
-	end
-	self._listeners = {}
-end
-
-
-function ListenerList:DisconnectRenderSteps()
-	local runService = game:GetService("RunService")
-	for _,n in ipairs(self._renderStepNames) do
-		runService:UnbindFromRenderStep(n)
-	end
-	self._renderStepNames = {}
-end
-
-
-function ListenerList:DisconnectActions()
-	local ctxService = game:GetService("ContextActionService")
-	for _,n in ipairs(self._actionNames) do
-		ctxService:UnbindAction(n)
-	end
-	self._actionNames = {}
-end
-
-
--- Disconnect all events in the list and clear the list:
-function ListenerList:DisconnectAll()
-	self:DisconnectEvents()
-	self:DisconnectRenderSteps()
-	self:DisconnectActions()
-end
-
-
-ListenerList.Destroy = ListenerList.DisconnectAll
+ListenerList.Disconnect = ListenerList.Destroy
 
 
 return ListenerList
