@@ -5,6 +5,7 @@
 
 
 local DeepObject = require(script.Parent.DeepObject)
+local Mutex = require(script.Parent.Mutex)
 local ListenerList = {}
 ListenerList.__index = ListenerList
 setmetatable(ListenerList, DeepObject)
@@ -14,6 +15,7 @@ function ListenerList.new(...)
     local self = setmetatable(DeepObject.new({
         _events = {};
         _callbacks = {};
+        _execLock = Mutex.new();
     }), ListenerList)
 
     for _, signal in ipairs({...}) do
@@ -33,7 +35,12 @@ end
 
 
 function ListenerList:Add(signal)
-    table.insert(self._events, signal:Connect(function(...) self:ExecuteCallbacks(...) end))
+    table.insert(self._events, signal:Connect(function(...)
+        if (self._execLock.TryLock()) then
+            self:ExecuteCallbacks(...)
+            self._execLock.Unlock()
+        end
+    end))
     return self
 end
 
